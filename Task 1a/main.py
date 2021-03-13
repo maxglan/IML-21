@@ -16,6 +16,9 @@ k = 10
 # array in which the solutions are stored
 solution = np.zeros(length)
 
+# Set seed
+np.random.seed(42)
+
 for i,j in zip(l, range(length)):
 # performing k fold validation for each lambda
     model = Ridge(i)
@@ -23,22 +26,14 @@ for i,j in zip(l, range(length)):
     X = train[:, 1:]
     y = train[:, 0]
     
-    batch_size = int(len(y)/k)
-    random_indices = np.arange(len(y))
-    np.random.shuffle(random_indices)
+    # create cross validation groups
+    labels = np.arange(0, len(y)) % k
+    np.random.shuffle(labels)
     
-    train_indices_list = []
-    test_indices_list = []
-    
-    for l in range(k): 
-        test_indices = [random_indices[n] for n in np.arange(batch_size*l, batch_size*(l+1))]
-        train_indices = [random_indices[n] for n in np.arange(0, batch_size*l)]
-        train_indices += [random_indices[n] for n in np.arange(batch_size*(l+1),len(y))]
-                                                        
-        test_indices_list.append(np.array(test_indices))
-        train_indices_list.append(np.array(train_indices))
-        
-    cv = zip(train_indices_list, test_indices_list)
+    train_indices = [[n for n in range(len(y)) if labels[n] != m] for m in range(k)]
+    test_indices = [[n for n in range(len(y)) if labels[n] == m] for m in range(k)]
+
+    cv = zip(train_indices, test_indices) 
 
     # T returns the array of scores of the estimator for each run of the cross validation
     T = cross_val_score(model, 
