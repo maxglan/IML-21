@@ -24,7 +24,7 @@ for i in l:
     #T returns the array of scores of the estimator for each run of the cross validation
 ## TO DO:  use the RMSE  as  a  score  ('scoring=neg_root_mean_squared_error',) but this gives an error atm, 
 ##and then take the mean of the RMSEs
-    T=cross_val_score(model, X, Y, cv=k)
+    T=cross_val_score(model, X, Y, scoring= 'neg_root_mean_squared_error' , cv=k)
     
     print(T)
 
