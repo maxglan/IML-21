@@ -17,16 +17,15 @@ k=10
 for i in l:
 #performing k fold validation for each lambda
     model=Ridge(i)
-    #extracting the data training data and results
+    #extracting the training data and the results
     X=train[:, 1:]
     y=train[:, 0]
     Y=np.reshape(y,(150,1))
     #T returns the array of scores of the estimator for each run of the cross validation
-## TO DO:  use the RMSE  as  a  score  ('scoring=neg_root_mean_squared_error',) but this gives an error atm, 
-##and then take the mean of the RMSEs
     T=cross_val_score(model, X, Y, scoring= 'neg_root_mean_squared_error' , cv=k)
-    
-    print(T)
+    ##takes the mean of the RMSEs for each lambda
+    solution=np.sum(T*0.1,axis=1).tolist()
+    print(solution)
 
 
 
