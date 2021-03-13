@@ -13,6 +13,7 @@ length = len(l)
 # 10 folds
 k = 10
 
+#randomnizing the order of the rows before splitting into k folds and fixing the seed
 np.random.seed(42)
 np.random.shuffle(train)
 
@@ -21,7 +22,7 @@ X = train[:, 1:]
 y = train[:, 0]
 
 
-# array in which the solutions are stored
+# initialize array in which the solutions are stored
 solution = np.zeros(length)
 
 for i,j in zip(l, range(length)):
@@ -30,7 +31,6 @@ for i,j in zip(l, range(length)):
 
     # T returns the array of scores of the estimator for each run of the cross validation
     T = cross_val_score(model, X, y, scoring='neg_root_mean_squared_error', cv=k)
-    print(T)
     # takes the mean of the RMSEs for each lambda and stores it in solutions
     solution[j] = 0.1 * sum(-T)
 
