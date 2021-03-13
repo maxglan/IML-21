@@ -26,6 +26,11 @@ for i in l:
     ##takes the mean of the RMSEs for each lambda
     solution=np.sum(T*0.1,axis=1).tolist()
     print(solution)
+    
+    #export to csv
+    f = open('solution.csv','w')
+    f.write(solution) #Give your csv text here.
+    f.close()
 
 
 
