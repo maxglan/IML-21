@@ -1,3 +1,8 @@
 #Ignore the file in which the solution is stored.
 
 */solution.cvs
+
+#Ignore the .DS_Store file
+
+.DS_store
+*/.DS_store

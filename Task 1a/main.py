@@ -8,9 +8,9 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_val_score
 
 #read the csv file
-train = np.loadtxt(open('/Users/georgengin/Downloads/task1a_do4bq81me/train.csv', "rb"), delimiter=",", skiprows=1)
+train = np.loadtxt(open('train.csv', "rb"), delimiter=",", skiprows=1)
 
-l=np.array([0.1, 1, 10 , 100, 200])
+l=np.array([0.1, 1, 10 , 100, 200]) #lambda
 #10 folds
 k=10
 
