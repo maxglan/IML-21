@@ -17,6 +17,7 @@ k = 10
 np.random.seed(42)
 np.random.shuffle(train)
 
+
 # extracting the training data and the results
 X = train[:, 1:]
 y = train[:, 0]
