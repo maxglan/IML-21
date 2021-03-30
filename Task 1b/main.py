@@ -4,6 +4,7 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import cross_val_score
+from scipy.stats import linregress
 
 # read the csv file
 train = np.loadtxt(open('train.csv', "rb"), delimiter=",", skiprows=1)
@@ -30,10 +31,15 @@ for i in range(len(y)):
 
 model = LinearRegression(fit_intercept=False).fit(phi, y)
 
+#Alternative way to solve the regression problem using scipy
+solution = np.linalg.lstsq(phi,y)[0]
+print(solution)
+
+
 #fit_intercept=False
 
 #saving the solution
-solution= model.coef_
+#solution= model.coef_
 
 # export to csv
 np.savetxt("solution.csv", solution)
