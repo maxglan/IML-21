@@ -17,16 +17,16 @@ y = train[:, 1]
 
 #calculating our new basis
 def features(x):
-    f= [x,x**2, np.exp(x), np.cos(x)]
-    f1= np.reshape(f, -1)
-    f1= np.append(f1, 1)
+    f = [x,x**2, np.exp(x), np.cos(x)]
+    f1 = np.reshape(f, -1)
+    f1 = np.append(f1, 1)
     return f1
 
 #calculating the values in our basis
-phi=np.zeros((700, 21))
+phi = np.zeros((700, 21))
 
 for i in range(len(y)):
-    phi[i]= features(X[i])
+    phi[i] = features(X[i])
 
 
 model = LinearRegression(fit_intercept=False).fit(phi, y)
