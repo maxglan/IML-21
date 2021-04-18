@@ -10,10 +10,7 @@ import pandas as pd
 
 def subtask3(trainf, trainl, test): 
     """
-    Arguments. 
-    
-    Description of the function. 
-    
+    returns the predicted data using Ridge regression and 10 fold Cross Validation
     """
     
     # 10 folds
@@ -28,6 +25,7 @@ def subtask3(trainf, trainl, test):
     
     prediction = np.zeros((18995, 4))
 
+    # performing 10 fold cross validation for 5 different lambdas on each of the 4 labels
     for i, l in zip(label, range(4)):
     
         y[i] = trainl[i]
@@ -43,6 +41,7 @@ def subtask3(trainf, trainl, test):
             T = cross_val_score(model[i][j], trainf, y[i], scoring='r2', cv=k)
             score[j] = 0.1 * sum(T)
         
+        #fitting our model with the best lambda
         best_lambda = np.argmax(score)
         print(best_lambda)
         model[i][best_lambda].fit(trainf , y[i])
