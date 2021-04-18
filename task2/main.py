@@ -4,12 +4,15 @@
 @author: georgengin
 """
 
+""" Imports """
+
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from numba import njit
 
-""" read the csv file into a Panda df """
+
+""" Read the csv file """
 
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
@@ -24,8 +27,9 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 trainf_arr = trainf.to_numpy(float, True, 0.)
 
+
+"""  Deal with missing data points """
 #@njit
-"""  here we attempt to deal with the missing data points (NaNs) """
 def trying_numba(trainf, num_ids, num_feat):
     for i in range(num_ids):
         for f in range(num_feat):
@@ -48,7 +52,8 @@ def trying_numba(trainf, num_ids, num_feat):
                     
     return trainf
 
-""" reshaping to use in SVM """
+
+""" Reshaping to use in SVM """
 reshaped_arr = np.zeros((len(id), 37*12))
 
 hallo = np.reshape(trainf_arr[0:0+12, :], (-1,))
