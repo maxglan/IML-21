@@ -32,10 +32,10 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 trainf_arr = trainf.to_numpy(float, True, 0.)
 
-#@njit
+@njit
 def trying_numba(trainf, num_ids, num_feat):
     #here we attempt to deal with the missing data points (NaNs)
-    for i in range(num_ids):
+    for i in np.arange(0, num_ids, 12):
         for f in range(num_feat):
             
             #check whether all entries of a specific feature of a patient are NaNs
@@ -49,10 +49,10 @@ def trying_numba(trainf, num_ids, num_feat):
                 minimum = np.nanmin( trainf[i:i+12,f] )
             
                 #check wether specific entry is nan and then replace it with minimum
-                for v in range(len(trainf[i:i+12,f])):
+                for v in range(trainf[i:i+12,f].shape[0]):
                     if np.isnan( trainf[i+v,f] ) == True:
                         trainf[i+v,f] = minimum
-        i = i + 12
+        #i = i + 12
                     
     return trainf
 
@@ -68,4 +68,4 @@ for i, id_i in enumerate(np.arange(0, len(id), 12)):
 reshaped_arr = reshaped_arr[:, 11:]
 
 
-#trainf_arr = trying_numba(trainf_arr, len(id), len(features))
+trainf_arr = trying_numba(trainf_arr, len(id), len(features))
