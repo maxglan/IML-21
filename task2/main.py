@@ -30,6 +30,7 @@ features = list(trainf.columns)
 trainf_arr = trainf.to_numpy(float, True)
 testf_arr = testf.to_numpy(float, True)
 
+
 """  Deal with missing data points """
 #@njit
 def deal_with_nans(t_arr, num_ids, num_feat):
@@ -86,7 +87,8 @@ test_features = deal_with_nans(testf_arr, len(id), len(features))
 
 """ Subtasks """
 
-k1 = subtask1(trainf=trainf_arr, trainl=trainl, test=test_features)
+k1 = subtask1(trainf=train_features, trainl=trainl, test=test_features)
+
 # k2 = subtask2(train_features , trainl, test_features )
 #subtask3(trainf=trainf_arr, trainl=trainl)
 

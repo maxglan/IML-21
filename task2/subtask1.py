@@ -29,6 +29,8 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
+from sklearn import svm
+
 
 """ Resources """
  
@@ -46,7 +48,8 @@ classifiers = [
     MLPClassifier(alpha=1, max_iter=1000),
     AdaBoostClassifier(),
     GaussianNB(),
-    QuadraticDiscriminantAnalysis()]
+    QuadraticDiscriminantAnalysis(),
+    svm.SVR()]
 
 
 """ Functions """
@@ -54,7 +57,7 @@ classifiers = [
 def subtask1(trainf: np.array, 
              trainl: pd.DataFrame, 
              test, 
-             clf=classifiers[0]): 
+             clf=classifiers[-1]): 
     """
     Arguments: 
     - trainf: Dataframe with train_features
