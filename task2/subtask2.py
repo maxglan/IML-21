@@ -3,16 +3,20 @@
 
 import numpy as np
 import pandas as pd
+from sklearn import svm
 
 
 """ Functions """
 
-def subtask2(trainf: np.array, trainl: pd.dataframe): 
+def subtask2(trainf, trainl, test): 
     """
-    Arguments. 
+    takes training features, training labels and a test set of features 
     
-    Description of the function. 
+    returns array with predicted labels
     
     """
-    
-    return 
+    y = trainl.LABEL_Sepsis
+    clf = svm.SVC()
+    clf.fit(trainf, y)
+   
+    return clf.predict(test)
