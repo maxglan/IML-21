@@ -18,4 +18,8 @@ trainl = pd.read_csv("train_labels.csv")
 #creates array with all patient ids in the given order
 id = trainf.pid.unique()
 
-print(trainf.pid[12])
+#list with names of the features
+features = list(trainf.columns)
+
+for i in id:
+    values = trainf.index[trainf['pid'] == i  ].tolist()
