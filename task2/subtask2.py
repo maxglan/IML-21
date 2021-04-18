@@ -16,7 +16,7 @@ def subtask2(trainf, trainl, test):
     
     """
     y = trainl.LABEL_Sepsis
-    clf = svm.SVC()
+    clf = svm.SVR()
     clf.fit(trainf, y)
    
     return clf.predict(test)

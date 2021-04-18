@@ -87,9 +87,8 @@ test_features = deal_with_nans(testf_arr, len(id), len(features))
 """ Subtasks """
 
 #subtask1(trainf=trainf_arr, trainl=trainl)
-#print(subtask2(train_features , trainl, test_features ))
+k = subtask2(train_features , trainl, test_features )
 #subtask3(trainf=trainf_arr, trainl=trainl)
-
 
 
 
