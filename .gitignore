@@ -6,3 +6,7 @@
 
 .DS_store
 */.DS_store
+
+#Ignore
+
+*/__pycache__
