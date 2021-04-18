@@ -9,7 +9,8 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 from numba import njit
 
-# read the csv file into a Panda df
+""" read the csv file into a Panda df """
+
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
 
@@ -47,7 +48,7 @@ def trying_numba(trainf, num_ids, num_feat):
                     
     return trainf
 
-
+""" reshaping to use in SVM """
 reshaped_arr = np.zeros((len(id), 37*12))
 
 hallo = np.reshape(trainf_arr[0:0+12, :], (-1,))
