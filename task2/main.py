@@ -10,11 +10,8 @@ from sklearn.linear_model import LinearRegression
 from numba import njit
 
 # read the csv file into a Panda df
-#train = np.loadtxt(open('train.csv', "rb"), delimiter=",", skiprows=1)
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
-
-# print(trainf.pid[12]) prints the 12+1th item of the pid column
 
 #creates array with all patient ids in the given order
 id = trainf.pid.unique()
@@ -22,19 +19,13 @@ id = trainf.pid.unique()
 #list with names of the features
 features = list(trainf.columns)
 
-#we get the warning:
-#   See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
-#   trainf[f][values] = 0
-#   /Users/georgengin/opt/anaconda3/lib/python3.8/site-packages/pandas/core/indexing.py:670: SettingWithCopyWarning: 
-#   A value is trying to be set on a copy of a slice from a DataFrame
-
 pd.options.mode.chained_assignment = None  # default='warn'
 
 trainf_arr = trainf.to_numpy(float, True, 0.)
 
 #@njit
+"""    #here we attempt to deal with the missing data points (NaNs) """
 def trying_numba(trainf, num_ids, num_feat):
-    #here we attempt to deal with the missing data points (NaNs)
     for i in range(num_ids):
         for f in range(num_feat):
             
