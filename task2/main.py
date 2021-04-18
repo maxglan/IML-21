@@ -45,7 +45,7 @@ for i in id:
             
         #else if any entry is a nan eg local minimum
         elif np.any( np.isnan( trainf[f][values] ) ) == True:
-            minimum = min( trainf[f][values] )
+            minimum = np.nanmin( trainf[f][values] )
         
             #check wether specific entry is nan and then replace it with minimum
             for v in values:
