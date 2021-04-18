@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 from sklearn import svm
 
 
@@ -16,7 +17,11 @@ def subtask2(trainf, trainl, test):
     
     """
     y = trainl.LABEL_Sepsis
-    clf = svm.SVR()
+    #clf = svm.SVR()
+    clf = svm.SVC()
     clf.fit(trainf, y)
-   
-    return clf.predict(test)
+    z = clf.decision_function(test)
+
+    return expit(z)
+
+#sample = pd.read_csv("sample.csv")

@@ -87,10 +87,17 @@ test_features = deal_with_nans(testf_arr, len(id), len(features))
 
 """ Subtasks """
 
+<<<<<<< Updated upstream
 k1 = subtask1(trainf=train_features, trainl=trainl, test=test_features)
 
 # k2 = subtask2(train_features , trainl, test_features )
 #subtask3(trainf=trainf_arr, trainl=trainl)
+=======
+#subtask1(trainf=trainf_arr, trainl=trainl)
+# k = subtask2(train_features , trainl, test_features )
+prediction = subtask3(train_features , trainl, test_features )
+
+>>>>>>> Stashed changes
 
 
 
