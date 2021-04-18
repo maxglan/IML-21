@@ -32,11 +32,11 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 #here we attempt to deal with the missing data points (NaNs)
 for i in id:
+    
+    #returns indices of rows for a specific patient id
+    values = trainf.index[trainf['pid'] == i  ].tolist()
+        
     for f in features:
-        
-        #returns indices of rows for a specific patient id
-        values = trainf.index[trainf['pid'] == i  ].tolist()
-        
         #check whether all entries of a specific feature of a patient are NaNs
         
         #if yes: replace all with 0
