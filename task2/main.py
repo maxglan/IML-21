@@ -11,6 +11,10 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 from numba import njit
 
+from subtask1 import subtask1
+from subtask2 import subtask2
+from subtask3 import subtask3
+
 
 """ Read the csv file """
 
@@ -66,3 +70,14 @@ reshaped_arr = reshaped_arr[:, 11:]
 
 
 trainf_arr = trying_numba(trainf_arr, len(id), len(features))
+
+
+""" Subtasks """
+
+subtask1(trainf=trainf_arr, trainl=trainl)
+subtask2(trainf=trainf_arr, trainl=trainl)
+subtask3(trainf=trainf_arr, trainl=trainl)
+
+
+
+
