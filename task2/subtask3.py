@@ -7,7 +7,7 @@ import pandas as pd
 
 """ Functions """
 
-def subtask3(trainf: np.array, trainl: pd.dataframe): 
+def subtask3(trainf: np.array, trainl: pd.DataFrame): 
     """
     Arguments. 
     

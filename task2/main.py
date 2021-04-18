@@ -17,6 +17,8 @@ from subtask3 import subtask3
 
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
+testf = pd.read_csv("train_features.csv")
+
 
 #creates array with all patient ids in the given order
 id = trainf.pid.unique()
@@ -26,9 +28,10 @@ features = list(trainf.columns)
 
 #Creates a numpy array out of the pd dataframe
 trainf_arr = trainf.to_numpy(float, True)
+testf_arr = testf.to_numpy(float, True)
 
 """  Deal with missing data points """
-@njit
+#@njit
 def deal_with_nans(t_arr, num_ids, num_feat):
     """
     Parameters
@@ -64,24 +67,27 @@ def deal_with_nans(t_arr, num_ids, num_feat):
                 for v in range(12):
                     if np.isnan( t_arr[i+v,f] ) == True:
                         t_arr[i+v,f] = minimum
-                
-#no return value because call by reference
-deal_with_nans(trainf_arr, len(id), len(features))
-
-""" Reshaping to use in SVM """
-trainf_arr_reshaped = np.zeros((len(id), 37*12))
-
-for i, id_i in enumerate(np.arange(0, len(id), 12)):
-    trainf_arr_reshaped[i,:] = np.reshape(trainf_arr[id_i:id_i+12, :], (-1,), order = 'F')
+                        
+    """ Reshaping to use in SVM """
+    t_reshaped = np.zeros((len(id), 37*12))
     
-#get rid of multiple patient IDs:
-trainf_arr_reshaped = trainf_arr_reshaped[:, 11:]
+    for i, id_i in enumerate(np.arange(0, len(id), 12)):
+        t_reshaped[i,:] = np.reshape(t_arr[id_i:id_i+12, :], (-1,), order = 'F')
+        
+    #get rid of multiple patient IDs:
+    t_reshaped = t_reshaped[:, 11:]
+    
+    return t_reshaped
+                
+#returns properly reshaped and filled arrays
+train_features = deal_with_nans(trainf_arr, len(id), len(features))
+test_features = deal_with_nans(testf_arr, len(id), len(features))
 
 
 """ Subtasks """
 
 #subtask1(trainf=trainf_arr, trainl=trainl)
-#subtask2(trainf=trainf_arr, trainl=trainl)
+#print(subtask2(train_features , trainl, test_features ))
 #subtask3(trainf=trainf_arr, trainl=trainl)
 
 
