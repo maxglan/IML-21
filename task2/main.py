@@ -106,7 +106,7 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 """ Subtasks """
 
 # prediction1 = subtask1(train_features , trainl, test_features )
-prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
+#prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
