@@ -23,16 +23,16 @@ def subtask2(trainf, trainl, test):
     
     y = trainl.LABEL_Sepsis
  
-    model = svm.SVR(kernel='sigmoid')
+    model = svm.SVR(kernel='sigmoid', probability=True)
     model.fit(trainf, y)
     
     # z = clf.decision_function(test)
     # result = expit(z)
         
     print("Training the label Sepsis")
-    result = model.predict(test)
+    result = model.predict_proba(test)
         
-    # model = xgb.XGBClassifier()
+    # model = xgb.XGBClassifier(predi)
     # model.fit( trainf,y)
     # result = model.predict_proba(test)
     
