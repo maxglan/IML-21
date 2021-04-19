@@ -33,7 +33,7 @@ def subtask3(trainf, trainl, test):
         
         score = np.zeros(length)
         
-        for j in length:
+        for j in l:
             
             model[i].append( Ridge(j) )
         
