@@ -19,7 +19,7 @@ def get_score(df_true, df_submission):
     return score
 
 
-filename = 'sample.zip'
+filename = 'prediction.zip'
 df_submission = pd.read_csv(filename)
 
 # generate a baseline based on sample.zip

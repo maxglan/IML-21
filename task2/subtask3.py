@@ -26,7 +26,7 @@ def subtask3(trainf, trainl, test):
     prediction = np.zeros((18995, 4))
 
     # performing 10 fold cross validation for 5 different lambdas on each of the 4 labels
-    for i, k in zip(label, range(4)):
+    for i, j in zip(label, range(4)):
     
         y[i] = trainl[i]
         model[i] = []
@@ -39,12 +39,13 @@ def subtask3(trainf, trainl, test):
         
             # T returns the array of scores of the estimator for each run of the cross validation
             T = cross_val_score(model[i][l_index], trainf, y[i], scoring='r2', cv=k)
+            
             score[l_index] = 0.1 * sum(T)
         
         #fitting our model with the best lambda
         best_lambda = np.argmax(score)
         model[i][best_lambda].fit(trainf , y[i])
         
-        prediction[:, k] = model[i][best_lambda].predict(test)
+        prediction[:, j] = model[i][best_lambda].predict(test)
     
     return prediction

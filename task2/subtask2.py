@@ -19,17 +19,15 @@ def subtask2(trainf, trainl, test):
     
     """
     y = trainl.LABEL_Sepsis
-    #clf = svm.SVR()
+    # clf = svm.SVR()
     # clf = svm.SVC()
     # clf.fit(trainf, y)
     # z = clf.decision_function(test)
-
-    # return expit(z)
+    # result = expit(z)
+    
     model = xgb.XGBClassifier()
     model.fit( trainf,y)
     
     result = model.predict(test)
     
     return result
-
-#sample = pd.read_csv("sample.csv")

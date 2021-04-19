@@ -82,7 +82,6 @@ def deal_with_nans(t_arr, num_ids, num_feat):
 
 """ if we use SVM we first have to normalize the data using maxabsscalar (good for data with many 0s)"""
 # def normalize(arr):
-x = list(enumerate(np.arange(0, len(id)*12, 12)))
 
 #returns properly reshaped and filled arrays
 train_features, tarr = deal_with_nans(trainf, len(id), len(features))
