@@ -11,10 +11,11 @@ import numpy as np
 import pandas as pd
 from sklearn import svm
 import xgboost as xgb
-
+from scipy.special import expit
+from numba import njit
 
 """ Functions """
-
+#@njit
 def subtask1(trainf, trainl, test): 
     """
     takes training features, training labels and a test set of features 
@@ -34,11 +35,12 @@ def subtask1(trainf, trainl, test):
     prediction = np.zeros((len(test), len(labels)))
 
     for l, i in zip(labels, range(len(labels))):
-        model[l] = svm.SVC(kernel='sigmoid', probability=True)
+        model[l] = svm.SVC(kernel='sigmoid')
         model[l].fit(trainf, trainl[l])
         
+        z = model[l].decision_function(test)
         print("Training the label " + l + ".")
-        prediction[:,i] = model[l].predict_proba(test)
+        prediction[:,i] = expit(z)
     
     print( "End subtask 1 ")
     
