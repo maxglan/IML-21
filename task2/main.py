@@ -132,11 +132,9 @@ def normalize_combined(train_features, test_features):
                                                                [ 0.02  0.  ]
                           [ 0.,  1.]])
 
-         test_features = np.array([[ 100., -1.],
-                                   [50.0,  0.],
-                                   [ 0,  1.]])
-         
-    
+         test_features = [[ 100., -1.], norm_train_features = [[ 1.  -1. ]
+                          [50.0,  0.]                          [ 0.5  0. ]
+                          [ 0,  1.]]                           [ 0.   1. ]]
     """
     
     all_features = np.concatenate((train_features, test_features))
@@ -147,18 +145,6 @@ def normalize_combined(train_features, test_features):
     
     return norm_train_features, norm_test_features
     
-X1 = np.array([[ 1., -1.],
-     [ 2.,  0.],
-     [ 0.,  1.]])
-
-X2 = np.array([[ 100., -1.],
-     [50.0,  0.],
-     [ 0,  1.]])
-
-norm_X1, norm_X2 = normalize_combined(X1, X2)
-
-print(norm_X1)
-print(norm_X2)
 
 #returns properly reshaped and filled arrays
 train_features, tarr = deal_with_nans(trainf, len(id), len(features))
@@ -175,7 +161,7 @@ prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
 
-# prediction3 = subtask3(train_features , trainl, test_features )
+prediction3 = subtask3(train_features , trainl, test_features )
 
 
 """ Combining and converting the subtask's output"""
