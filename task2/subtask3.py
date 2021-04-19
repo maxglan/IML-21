@@ -25,7 +25,7 @@ def subtask3(trainf, trainl, test):
     model={}
     best_lambda = []
     
-    prediction = np.zeros((12665, 4))
+    prediction = np.zeros((12664, 4))
 
     # performing 10 fold cross validation for 5 different lambdas on each of the 4 labels
     for i, j in zip(label, range(4)):
