@@ -6,6 +6,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MaxAbsScaler
 from numba import njit
 
 from subtask1g import subtask1
@@ -80,20 +81,104 @@ def deal_with_nans(t_arr, num_ids, num_feat):
     return t, arr
       
 
-""" if we use SVM we first have to normalize the data using maxabsscalar (good for data with many 0s)"""
-# def normalize(arr):
+""" Normalize the data """
+
+# If we use non-linear SVM we first have to normalize the data using 
+# maxabsscalar (good for data with many 0s)
+def normalize(arr):
+    """
+    Parameters
+    ----------
+    arr : ndarray
+    
+    Returns
+    -------
+    norm_arr: ndarray
+        Normalized and scaled version of arr. We normalize 
+        each feature (column)separately by its absolute value. 
+        
+        For example: 
+        arr =  [[ 1., -1.,  2.],        norm_arr = [[ 0.5, -1. ,  1. ],
+               [ 2.,  0.,  0.],                    [ 1. ,  0. ,  0. ],
+               [ 0.,  1., -1.]]                    [ 0. ,  1. , -0.5]])
+
+    """
+    
+    # Scaling to [-1,1]
+    transformer = MaxAbsScaler().fit(arr)
+    norm_arr = transformer.transform(arr)
+    
+    return norm_arr
+    
+def normalize_combined(train_features, test_features):
+    """
+    Idea
+    ----------
+    The function combines the two set of features and normalizes them as whole. 
+
+    Parameters
+    ----------
+    train_features: ndarray
+    test_features: ndarray
+
+    Returns
+    -------
+    norm_train_features: ndarray
+    norm_test_features: ndarray
+    
+    Example: 
+        train_features = [[ 1., -1.],   norm_train_features = [[ 0.01 -1.  ]
+                          [ 2.,  0.],                          [ 0.02  0.  ]
+                                                               [ 0.02  0.  ]
+                          [ 0.,  1.]])
+
+         test_features = np.array([[ 100., -1.],
+                                   [50.0,  0.],
+                                   [ 0,  1.]])
+         
+    
+    """
+    
+    all_features = np.concatenate((train_features, test_features))
+    norm_all_features = normalize(all_features)
+    
+    norm_train_features = norm_all_features[:len(train_features), :]
+    norm_test_features = norm_all_features[len(train_features):, :]
+    
+    return norm_train_features, norm_test_features
+    
+X1 = np.array([[ 1., -1.],
+     [ 2.,  0.],
+     [ 0.,  1.]])
+
+X2 = np.array([[ 100., -1.],
+     [50.0,  0.],
+     [ 0,  1.]])
+
+norm_X1, norm_X2 = normalize_combined(X1, X2)
+
+print(norm_X1)
+print(norm_X2)
 
 #returns properly reshaped and filled arrays
 train_features, tarr = deal_with_nans(trainf, len(id), len(features))
 test_features , tarr2 = deal_with_nans(testf, len(id), len(features))
 
+# normalised versions
+norm_train_features, norm_test_features = normalize_combined(train_features, test_features)
+
 
 """ Subtasks """
 # prediction1 = subtask1(train_features , trainl, test_features )
-# prediction2 = subtask2(train_features , trainl, test_features )
-prediction3 = subtask3(train_features , trainl, test_features )
+prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
-"""combining and converting the subtask's output to the wanted output file"""
+# prediction2 = subtask2(train_features , trainl, test_features )
+prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
+
+# prediction3 = subtask3(train_features , trainl, test_features )
+
+
+""" Combining and converting the subtask's output"""
 df = pd.read_csv("sample.csv")
 df[:,1:10] = prediction1
 df[:,11] = prediction2
