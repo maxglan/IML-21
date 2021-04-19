@@ -16,6 +16,7 @@ from subtask3 import subtask3
 
 """ Read the csv file """
 
+print(" Read CSV file.")
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
 testf = pd.read_csv("train_features.csv")
@@ -46,6 +47,8 @@ def deal_with_nans(t_arr, num_ids, num_feat):
     If only some data is missing, we set the nans to the minimum of that patient's
     feature.
     """
+    
+    print(" Deal with missing data.")
     
     #Creates a numpy array out of the pd dataframe
     arr = t_arr.to_numpy(float, True)
@@ -82,7 +85,6 @@ def deal_with_nans(t_arr, num_ids, num_feat):
       
 
 """ Normalize the data """
-
 # If we use non-linear SVM we first have to normalize the data using 
 # maxabsscalar (good for data with many 0s)
 def normalize(arr):
@@ -137,6 +139,8 @@ def normalize_combined(train_features, test_features):
                           [ 0,  1.]]                           [ 0.   1. ]]
     """
     
+    print(" Normalize the data.")
+    
     all_features = np.concatenate((train_features, test_features))
     norm_all_features = normalize(all_features)
     
@@ -155,6 +159,7 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 
 
 """ Subtasks """
+
 # prediction1 = subtask1(train_features , trainl, test_features )
 prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
@@ -165,6 +170,8 @@ prediction3 = subtask3(train_features , trainl, test_features )
 
 
 """ Combining and converting the subtask's output"""
+
+print(" Store predictions.")
 df = pd.read_csv("sample.csv")
 df[:,1:10] = prediction1
 df[:,11] = prediction2

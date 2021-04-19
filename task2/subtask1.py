@@ -14,11 +14,6 @@
 import numpy as np
 import pandas as pd
 
-from scipy.stats import logistic # sigmoid function
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.datasets import make_moons, make_circles, make_classification
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -42,6 +37,7 @@ classifiers = [
     KNeighborsClassifier(3),
     SVC(kernel="linear", C=0.025),
     SVC(gamma=2, C=1),
+    svm.SVC(kernel='sigmoid'),
     GaussianProcessClassifier(1.0 * RBF(1.0)),
     DecisionTreeClassifier(max_depth=5),
     RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
@@ -57,7 +53,7 @@ classifiers = [
 def subtask1(trainf: np.array, 
              trainl: pd.DataFrame, 
              test, 
-             clf=classifiers[-1]): 
+             clf=classifiers[3]): 
     """
     Arguments: 
     - trainf: Dataframe with train_features
@@ -71,20 +67,18 @@ def subtask1(trainf: np.array,
     
     """
     
-    # Reshape the dataset if necessary
-    
-    
-    # Train 
-    clf.fit(X=trainf, y=trainl)
-    print(clf.get_param([]))
-    
-    
-    # Test
-    
-    
-    # Predict
+    labels = ["LABEL_BaseExcess", "LABEL_Fibrinogen", "LABEL_AST", "LABEL_Alkalinephos", 
+          "LABEL_Bilirubin_total", "LABEL_Lactate", "LABEL_TroponinI", "LABEL_SaO2", 
+          "LABEL_Bilirubin_direct", "LABEL_EtCO2"]
 
-    prediction = clf.predict(test)
-    
+    model={}
+
+    prediction = np.zeros((len(test), len(labels)))
+
+    for l, i in zip(labels, range(len(labels))):
+        model[l] = clf()
+        model[l].fit(trainf, trainl[l])
+        
+        prediction[:,i] = model[l].predict(test)
     
     return prediction

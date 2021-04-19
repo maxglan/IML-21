@@ -13,6 +13,8 @@ def subtask3(trainf, trainl, test):
     returns the predicted data using Ridge regression and 10 fold Cross Validation
     """
     
+    print(" Start subtask 3.")
+    
     # 10 folds
     k = 10
     

@@ -18,6 +18,9 @@ def subtask2(trainf, trainl, test):
     returns array with predicted labels
     
     """
+    
+    print(" Start subtask 2 ")
+    
     y = trainl.LABEL_Sepsis
     # clf = svm.SVR()
     # clf = svm.SVC()
