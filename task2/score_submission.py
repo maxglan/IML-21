@@ -19,6 +19,7 @@ def get_score(df_true, df_submission):
     return score
 
 
+"""
 filename = 'prediction.zip'
 df_submission = pd.read_csv(filename)
 
@@ -29,3 +30,5 @@ for label in TESTS + ['LABEL_Sepsis']:
     df_true[label] = np.around(df_true[label].values)
 
 print('Score of sample.zip with itself as groundtruth', get_score(df_true, df_submission))
+
+"""
