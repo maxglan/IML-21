@@ -28,16 +28,13 @@ def subtask1(trainf, trainl, test):
           "LABEL_Bilirubin_total", "LABEL_Lactate", "LABEL_TroponinI", "LABEL_SaO2", 
           "LABEL_Bilirubin_direct", "LABEL_EtCO2"]
 
-    y={}
     model={}
 
     prediction = np.zeros((18995, len(labels)))
 
-    for l, i in zip(labels, range(labels)):
-        y[l] = trainl[l]
-        model[l] = []
+    for l, i in zip(labels, range(len(labels))):
         model[l] = svm.SVC
-        model[l].fit(trainf, y[l])
+        model[l].fit(trainf, trainl[l])
         
         prediction[:,i] = model[l].predict(test)
     
