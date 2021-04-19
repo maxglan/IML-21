@@ -13,6 +13,8 @@ from subtask1g import subtask1
 from subtask2 import subtask2
 from subtask3 import subtask3
 
+from score_submission import get_score, TESTS
+
 
 """ Read the csv file """
 
@@ -161,7 +163,7 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 """ Subtasks """
 
 # prediction1 = subtask1(train_features , trainl, test_features )
-prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
+#prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
@@ -173,9 +175,22 @@ prediction3 = subtask3(train_features , trainl, test_features )
 
 print(" Store predictions.")
 df = pd.read_csv("sample.csv")
-df[:,1:10] = prediction1
+#df[:,1:10] = prediction1
 df[:,11] = prediction2
 df[:,12:] = prediction3
 df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
+
+
+""" Score submission """
+
+df_submission = pd.read_csv('prediction.zip')
+
+# generate a baseline based on sample.zip
+df_true = pd.read_csv('test_features.zip')
+for label in TESTS + ['LABEL_Sepsis']:
+    # round classification labels
+    df_true[label] = np.around(df_true[label].values)
+
+print('Score of sample.zip with itself as groundtruth', get_score(df_true, df_submission))
 
 
