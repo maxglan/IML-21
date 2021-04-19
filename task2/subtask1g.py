@@ -16,7 +16,7 @@ import xgboost as xgb
 
 """ Functions """
 
-def subtask2(trainf, trainl, test): 
+def subtask1(trainf, trainl, test): 
     """
     takes training features, training labels and a test set of features 
     

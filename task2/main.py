@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 from numba import njit
 
-from subtask1 import subtask1
+from subtask1g import subtask1
 from subtask2 import subtask2
 from subtask3 import subtask3
 
@@ -91,7 +91,7 @@ test_features , tarr2 = deal_with_nans(testf, len(id), len(features))
 
 """ Subtasks """
 
-# prediction1 = subtask1(trainf=train_features, trainl=trainl, test=test_features)
+prediction1 = subtask1(train_features , trainl, test_features )
 prediction2 = subtask2(train_features , trainl, test_features )
 prediction3 = subtask3(train_features , trainl, test_features )
 
