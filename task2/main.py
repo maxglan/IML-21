@@ -97,7 +97,7 @@ def normalize_combined(train_features, test_features):
 
 #returns properly reshaped and filled arrays
 train_features = deal_with_nans(trainf, len(id), len(features))
-test_features = deal_with_nans(testf, len(id), len(features))
+test_features = deal_with_nans(testf, 12665, len(features))
 
 # normalised versions
 norm_train_features, norm_test_features = normalize_combined(train_features, test_features)
