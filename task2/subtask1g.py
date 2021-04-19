@@ -38,7 +38,7 @@ def subtask1(trainf, trainl, test):
         model[l].fit(trainf, trainl[l])
         
         print("Training the label " + l + ".")
-        prediction[:,i] = model[l].predict_proba(test)
+        prediction[:,i] = model[l].predict_proba(test)[:,1]
     
     print( "End subtask 1 ")
     
