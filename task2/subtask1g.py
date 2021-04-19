@@ -9,7 +9,6 @@ Created on Mon Apr 19 10:23:32 2021
 
 import numpy as np
 import pandas as pd
-from scipy.special import expit
 from sklearn import svm
 import xgboost as xgb
 

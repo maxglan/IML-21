@@ -83,7 +83,7 @@ def deal_with_nans(t_arr, num_ids, num_feat):
     #get rid of multiple patient IDs:
     t = t_reshaped[:, 11:]
     
-    return t, arr
+    return t
       
 
 """ Normalize the data """
@@ -153,8 +153,8 @@ def normalize_combined(train_features, test_features):
     
 
 #returns properly reshaped and filled arrays
-train_features, tarr = deal_with_nans(trainf, len(id), len(features))
-test_features , tarr2 = deal_with_nans(testf, len(id), len(features))
+train_features = deal_with_nans(trainf, len(id), len(features))
+test_features = deal_with_nans(testf, len(id), len(features))
 
 # normalised versions
 norm_train_features, norm_test_features = normalize_combined(train_features, test_features)
