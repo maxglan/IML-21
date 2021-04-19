@@ -31,6 +31,6 @@ def subtask2(trainf, trainl, test):
     model = xgb.XGBClassifier()
     model.fit( trainf,y)
     
-    result = model.predict(test)
+    result = model.predict_proba(test)
     
     return result

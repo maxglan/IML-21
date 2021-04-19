@@ -33,22 +33,7 @@ features = list(trainf.columns)
 """  Deal with missing data points """
 #@njit
 def deal_with_nans(t_arr, num_ids, num_feat):
-    """
-    Parameters
-    ----------
-    t_arr : ndarray
-        contains the training data
-    num_ids : int64
-        number of patient ids
-    num_feat : TYPE
-        number of features (== columns of t_arr)
-
-    Returns the preprocessed and reshaped array
-    -------    
-    If all the data of a patient's feature is missing, we set all the value to zero.
-    If only some data is missing, we set the nans to the minimum of that patient's
-    feature.
-    """
+    """ Returns the preprocessed and reshaped array """
     
     print(" Deal with missing data.")
     
@@ -90,24 +75,6 @@ def deal_with_nans(t_arr, num_ids, num_feat):
 # If we use non-linear SVM we first have to normalize the data using 
 # maxabsscalar (good for data with many 0s)
 def normalize(arr):
-    """
-    Parameters
-    ----------
-    arr : ndarray
-    
-    Returns
-    -------
-    norm_arr: ndarray
-        Normalized and scaled version of arr. We normalize 
-        each feature (column)separately by its absolute value. 
-        
-        For example: 
-        arr =  [[ 1., -1.,  2.],        norm_arr = [[ 0.5, -1. ,  1. ],
-               [ 2.,  0.,  0.],                    [ 1. ,  0. ,  0. ],
-               [ 0.,  1., -1.]]                    [ 0. ,  1. , -0.5]])
-
-    """
-    
     # Scaling to [-1,1]
     transformer = MaxAbsScaler().fit(arr)
     norm_arr = transformer.transform(arr)
@@ -115,31 +82,7 @@ def normalize(arr):
     return norm_arr
     
 def normalize_combined(train_features, test_features):
-    """
-    Idea
-    ----------
-    The function combines the two set of features and normalizes them as whole. 
-
-    Parameters
-    ----------
-    train_features: ndarray
-    test_features: ndarray
-
-    Returns
-    -------
-    norm_train_features: ndarray
-    norm_test_features: ndarray
-    
-    Example: 
-        train_features = [[ 1., -1.],   norm_train_features = [[ 0.01 -1.  ]
-                          [ 2.,  0.],                          [ 0.02  0.  ]
-                                                               [ 0.02  0.  ]
-                          [ 0.,  1.]])
-
-         test_features = [[ 100., -1.], norm_train_features = [[ 1.  -1. ]
-                          [50.0,  0.]                          [ 0.5  0. ]
-                          [ 0,  1.]]                           [ 0.   1. ]]
-    """
+    """ Idea: The function combines the two set of features and normalizes them as whole.  """
     
     print(" Normalize the data.")
     
@@ -163,9 +106,7 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 """ Subtasks """
 
 # prediction1 = subtask1(train_features , trainl, test_features )
-#prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
-prediction1 = pd.read_csv("sample.csv").iloc[:,1:10]
-
+prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
@@ -174,44 +115,29 @@ prediction3 = subtask3(train_features , trainl, test_features )
 
 
 """ Combining and converting the subtask's output"""
-
-print(" Store predictions.")
-
 column_names = list(pd.read_csv("sample.csv").columns)
-print(column_names)
-
-pid_list = pd.read_csv("test_features.csv")['pid'].values
-print(pid_list)
-   
-#prediction1 = pd.read_csv("sample.csv")[:,1:10]
 
 df = pd.DataFrame(columns=column_names)
+df.pid = trainl.pid
 
-for i in range(len(pid_list)): 
-    new_row = [pid_list[i]]
-    new_row.append(prediction1[i])
-    new_row.append(prediction2[i])
-    new_row.append(prediction3[i])
-    df.append(new_row, ignore_index=True)
-
-#df = pd.read_csv("sample.csv")
-#df[:,1:10] = prediction1
-#df[:,11] = prediction2
-#df[:,12:] = prediction3
-
+df[["LABEL_BaseExcess", "LABEL_Fibrinogen", "LABEL_AST", 
+              "LABEL_Alkalinephos", "LABEL_Bilirubin_total", "LABEL_Lactate", 
+              "LABEL_TroponinI", "LABEL_SaO2", "LABEL_Bilirubin_direct", 
+              "LABEL_EtCO2"]] = prediction1
+df["LABEL_Sepsis"] = prediction2
+df[["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"]] = prediction3
 df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
-
 
 """ Score submission """
 
-df_submission = pd.read_csv('prediction.zip')
+# df_submission = pd.read_csv('prediction.zip')
 
-# generate a baseline based on sample.zip
-df_true = pd.read_csv('test_features.zip')
-for label in TESTS + ['LABEL_Sepsis']:
-    # round classification labels
-    df_true[label] = np.around(df_true[label].values)
+# # generate a baseline based on sample.zip
+# df_true = pd.read_csv('test_features.zip')
+# for label in TESTS + ['LABEL_Sepsis']:
+#     # round classification labels
+#     df_true[label] = np.around(df_true[label].values)
 
-print('Score of sample.zip with itself as groundtruth', get_score(df_true, df_submission))
+# print('Score of sample.zip with itself as groundtruth', get_score(df_true, df_submission))
 
 
