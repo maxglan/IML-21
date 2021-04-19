@@ -23,7 +23,7 @@ def subtask2(trainf, trainl, test):
     
     y = trainl.LABEL_Sepsis
  
-    model = svm.SVC(kernel='sigmoid')
+    model = svm.SVC(kernel='rbf')
     model.fit(trainf, y)
     
     # z = clf.decision_function(test)
