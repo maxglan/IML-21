@@ -164,6 +164,8 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 
 # prediction1 = subtask1(train_features , trainl, test_features )
 #prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
+prediction1 = pd.read_csv("sample.csv")[:,1:10]
+
 
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
@@ -174,10 +176,29 @@ prediction3 = subtask3(train_features , trainl, test_features )
 """ Combining and converting the subtask's output"""
 
 print(" Store predictions.")
-df = pd.read_csv("sample.csv")
+
+column_names = list(pd.read_csv("sample.csv").columns)
+print(column_names)
+
+pid_list = pd.read_csv("test_features.csv")['pid'].values
+print(pid_list)
+   
+#prediction1 = pd.read_csv("sample.csv")[:,1:10]
+
+df = pd.DataFrame(columns=column_names)
+
+for i in range(len(pid_list)): 
+    new_row = [pid_list[i]]
+    new_row.append(prediction1[i])
+    new_row.append(prediction2[i])
+    new_row.append(prediction3[i])
+    df.append(new_row, ignore_index=True)
+
+#df = pd.read_csv("sample.csv")
 #df[:,1:10] = prediction1
-df[:,11] = prediction2
-df[:,12:] = prediction3
+#df[:,11] = prediction2
+#df[:,12:] = prediction3
+
 df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
 
 
