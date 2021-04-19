@@ -26,14 +26,14 @@ def subtask3(trainf, trainl, test):
     prediction = np.zeros((18995, 4))
 
     # performing 10 fold cross validation for 5 different lambdas on each of the 4 labels
-    for i, l in zip(label, range(4)):
+    for i, k in zip(label, range(4)):
     
         y[i] = trainl[i]
         model[i] = []
         
         score = np.zeros(length)
         
-        for j in range(length):
+        for j in length:
             
             model[i].append( Ridge(j) )
         
@@ -45,6 +45,6 @@ def subtask3(trainf, trainl, test):
         best_lambda = np.argmax(score)
         model[i][best_lambda].fit(trainf , y[i])
         
-        prediction[:, l] = model[i][best_lambda].predict(test)
+        prediction[:, k] = model[i][best_lambda].predict(test)
     
     return prediction

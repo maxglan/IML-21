@@ -48,6 +48,7 @@ def deal_with_nans(t_arr, num_ids, num_feat):
     
     #Creates a numpy array out of the pd dataframe
     arr = t_arr.to_numpy(float, True)
+    t_reshaped = np.zeros((num_ids, 37*12))
     
     for i in np.arange(0, num_ids*12, 12):
         for f in range(num_feat):
@@ -67,28 +68,30 @@ def deal_with_nans(t_arr, num_ids, num_feat):
                         arr[i+v,f] = minimum
                         
     """ Reshaping to use in SVM """
-    t_reshaped = np.zeros((len(id), 37*12))
     
-    for i, id_i in enumerate(np.arange(0, len(id), 12)):
-        t_reshaped[i,:] = np.reshape(arr[id_i:id_i+12, :], (-1,), order = 'F')
+    # for i, id_i in enumerate(np.arange(0, num_ids*12, 12)):
+    #     t_reshaped[i,:] = np.reshape(arr[id_i:id_i+12, :], (-1,), order = 'F')
+    for i in range(num_ids):
+        t_reshaped[i,:] = np.reshape(arr[i*12: i*12 +12, :], (-1,), order = 'F')
         
     #get rid of multiple patient IDs:
-    t_reshaped = t_reshaped[:, 11:]
+    t = t_reshaped[:, 11:]
     
-    return t_reshaped
+    return t, arr
       
 
 """ if we use SVM we first have to normalize the data using maxabsscalar (good for data with many 0s)"""
 # def normalize(arr):
-    
+x = list(enumerate(np.arange(0, len(id)*12, 12)))
+
 #returns properly reshaped and filled arrays
-train_features = deal_with_nans(trainf, len(id), len(features))
-test_features = deal_with_nans(testf, len(id), len(features))
+train_features, tarr = deal_with_nans(trainf, len(id), len(features))
+test_features , tarr2 = deal_with_nans(testf, len(id), len(features))
 
 
 """ Subtasks """
 
-#prediction1 = subtask1(trainf=train_features, trainl=trainl, test=test_features)
+# prediction1 = subtask1(trainf=train_features, trainl=trainl, test=test_features)
 prediction2 = subtask2(train_features , trainl, test_features )
 prediction3 = subtask3(train_features , trainl, test_features )
 
