@@ -21,8 +21,7 @@ from score_submission import get_score, TESTS
 print(" Read CSV file.")
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
-testf = pd.read_csv("train_features.csv")
-
+testf = pd.read_csv("test_features.csv")
 
 #creates array with all patient ids in the given order
 id = trainf.pid.unique()
@@ -163,8 +162,8 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 """ Subtasks """
 
 # prediction1 = subtask1(train_features , trainl, test_features )
-#prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
-prediction1 = pd.read_csv("sample.csv").iloc[:,1:10]
+prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
+#prediction1 = pd.read_csv("sample.csv").iloc[:,1:10]
 
 
 # prediction2 = subtask2(train_features , trainl, test_features )
@@ -185,33 +184,81 @@ print(pid_list)
    
 #prediction1 = pd.read_csv("sample.csv")[:,1:10]
 
+
 df = pd.DataFrame(columns=column_names)
 
+
+"""
+df0 = pd.DataFrame(pid_list, columns=['pid'])
+df = df.append(df0)
+
+df1 = pd.DataFrame(prediction1, columns=["LABEL_BaseExcess", "LABEL_Fibrinogen", "LABEL_AST", 
+              "LABEL_Alkalinephos", "LABEL_Bilirubin_total", "LABEL_Lactate", 
+              "LABEL_TroponinI", "LABEL_SaO2", "LABEL_Bilirubin_direct", 
+              "LABEL_EtCO2"])
+df = df.append(df1, ignore_index=True)
+
+df2 = pd.DataFrame(prediction2, columns=['LABEL_Sepsis'])
+df = df.append(df2, ignore_index=True)
+
+df3 = pd.DataFrame(prediction3, columns=["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"])
+df = df.append(df3, ignore_index=True)
+
+"""
+
+print(len(pid_list))
+
+prediction_list = []
+
 for i in range(len(pid_list)): 
+    
+    prediction = [pid_list[i]] + list(prediction1[i]) + [prediction2[i]] + list(prediction3[i])
+    
+    prediction_list.append(prediction)
+    
+df0 = pd.DataFrame(data=prediction_list, 
+                   columns=['pid', "LABEL_BaseExcess", 
+                            "LABEL_Fibrinogen", "LABEL_AST", 
+                            "LABEL_Alkalinephos", "LABEL_Bilirubin_total", 
+                            "LABEL_Lactate", "LABEL_TroponinI", 
+                            "LABEL_SaO2", "LABEL_Bilirubin_direct", 
+                            "LABEL_EtCO2", 'LABEL_Sepsis', 
+                            "LABEL_RRate", "LABEL_ABPm", 
+                            "LABEL_SpO2", "LABEL_Heartrate"])
+
+df = df.append(df0, ignore_index=True)
+    
+   
+"""
+for i in range(len(prediction1)): 
     new_row = [pid_list[i]]
-    new_row.append(prediction1[i])
+    
+    for p in prediction1[i]: 
+        new_row.append(p)
+        
     new_row.append(prediction2[i])
-    new_row.append(prediction3[i])
-    df.append(new_row, ignore_index=True)
+    
+    for p in prediction3[i]: 
+        new_row.append(p)
+        
+        
+    print(new_row)
+    
+    df_app = pd.DataFrame(data=new_row)
+    
+    df.append(df_app)
+    
+"""
+    
+print(df)
 
 #df = pd.read_csv("sample.csv")
 #df[:,1:10] = prediction1
 #df[:,11] = prediction2
 #df[:,12:] = prediction3
 
-df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
+df.to_csv('prediction.csv', float_format='%.3f', index=False, mode='w+')
+#df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
 
-
-""" Score submission """
-
-df_submission = pd.read_csv('prediction.zip')
-
-# generate a baseline based on sample.zip
-df_true = pd.read_csv('test_features.zip')
-for label in TESTS + ['LABEL_Sepsis']:
-    # round classification labels
-    df_true[label] = np.around(df_true[label].values)
-
-print('Score of sample.zip with itself as groundtruth', get_score(df_true, df_submission))
 
 
