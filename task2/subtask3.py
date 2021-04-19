@@ -43,7 +43,6 @@ def subtask3(trainf, trainl, test):
         
         #fitting our model with the best lambda
         best_lambda = np.argmax(score)
-        print(best_lambda)
         model[i][best_lambda].fit(trainf , y[i])
         
         prediction[:, l] = model[i][best_lambda].predict(test)
