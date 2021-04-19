@@ -25,7 +25,8 @@ testf = pd.read_csv("test_features.csv")
 
 
 #creates array with all patient ids in the given order
-id = trainf.pid.unique()
+idtrain = trainf.pid.unique()
+idtest = testf.pid.unique()
 
 #list with names of the features
 features = list(trainf.columns)
@@ -59,9 +60,6 @@ def deal_with_nans(t_arr, num_ids, num_feat):
                         arr[i+v,f] = minimum
                         
     """ Reshaping to use in SVM """
-    
-    # for i, id_i in enumerate(np.arange(0, num_ids*12, 12)):
-    #     t_reshaped[i,:] = np.reshape(arr[id_i:id_i+12, :], (-1,), order = 'F')
     for i in range(num_ids):
         t_reshaped[i,:] = np.reshape(arr[i*12: i*12 +12, :], (-1,), order = 'F')
         
@@ -96,8 +94,8 @@ def normalize_combined(train_features, test_features):
     
 
 #returns properly reshaped and filled arrays
-train_features = deal_with_nans(trainf, len(id), len(features))
-test_features = deal_with_nans(testf, 12665, len(features))
+train_features = deal_with_nans(trainf, len(idtrain), len(features))
+test_features = deal_with_nans(testf, len(idtest), len(features))
 
 # normalised versions
 norm_train_features, norm_test_features = normalize_combined(train_features, test_features)
