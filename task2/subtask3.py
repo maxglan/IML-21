@@ -33,13 +33,13 @@ def subtask3(trainf, trainl, test):
         
         score = np.zeros(length)
         
-        for j in l:
+        for lamb, l_index in zip(l, range(length)):
             
-            model[i].append( Ridge(j) )
+            model[i].append( Ridge(lamb) )
         
             # T returns the array of scores of the estimator for each run of the cross validation
-            T = cross_val_score(model[i][j], trainf, y[i], scoring='r2', cv=k)
-            score[j] = 0.1 * sum(T)
+            T = cross_val_score(model[i][l_index], trainf, y[i], scoring='r2', cv=k)
+            score[l_index] = 0.1 * sum(T)
         
         #fitting our model with the best lambda
         best_lambda = np.argmax(score)

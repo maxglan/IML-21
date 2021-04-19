@@ -90,17 +90,15 @@ test_features , tarr2 = deal_with_nans(testf, len(id), len(features))
 
 
 """ Subtasks """
-
 # prediction1 = subtask1(train_features , trainl, test_features )
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction3 = subtask3(train_features , trainl, test_features )
 
 """combining and converting the subtask's output to the wanted output file"""
-# df = pd.read_csv("sample.csv")
-# df[:,1:10] = prediction1
-# df[:,11] = prediction2
-# df[:,12:] = prediction3
-    
+df = pd.read_csv("sample.csv")
+df[:,1:10] = prediction1
+df[:,11] = prediction2
+df[:,12:] = prediction3
 df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
 
 
