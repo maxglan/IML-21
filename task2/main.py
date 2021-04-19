@@ -21,7 +21,7 @@ from score_submission import get_score, TESTS
 print(" Read CSV file.")
 trainf = pd.read_csv("train_features.csv")
 trainl = pd.read_csv("train_labels.csv")
-testf = pd.read_csv("train_features.csv")
+testf = pd.read_csv("test_features.csv")
 
 
 #creates array with all patient ids in the given order
@@ -106,7 +106,7 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 """ Subtasks """
 
 # prediction1 = subtask1(train_features , trainl, test_features )
-#prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
+prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
@@ -115,17 +115,17 @@ prediction3 = subtask3(train_features , trainl, test_features )
 
 
 """ Combining and converting the subtask's output"""
-column_names = list(pd.read_csv("sample.csv").columns)
-
-df = pd.DataFrame(columns=column_names)
-df.pid = trainl.pid
+df = pd.read_csv("sample.csv")
 
 df[["LABEL_BaseExcess", "LABEL_Fibrinogen", "LABEL_AST", 
               "LABEL_Alkalinephos", "LABEL_Bilirubin_total", "LABEL_Lactate", 
               "LABEL_TroponinI", "LABEL_SaO2", "LABEL_Bilirubin_direct", 
               "LABEL_EtCO2"]] = prediction1
+
 df["LABEL_Sepsis"] = prediction2
+
 df[["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"]] = prediction3
+
 df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
 
 """ Score submission """
