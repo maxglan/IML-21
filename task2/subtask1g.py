@@ -33,7 +33,7 @@ def subtask1(trainf, trainl, test):
     prediction = np.zeros((18995, len(labels)))
 
     for l, i in zip(labels, range(len(labels))):
-        model[l] = svm.SVC()
+        model[l] = svm.SVC(kernel='sigmoid')
         model[l].fit(trainf, trainl[l])
         
         prediction[:,i] = model[l].predict(test)
