@@ -31,15 +31,7 @@ def subtask1(trainf, trainl, test):
               "LABEL_EtCO2"]
 
     model={}
-
     prediction = np.zeros((len(test), len(labels)))
-
-    # for l, i in zip(labels, range(len(labels))):
-    #     model[l] = svm.SVC(kernel='sigmoid', probability=True)
-    #     model[l].fit(trainf, trainl[l])
-        
-    #     print("Training the label " + l + ".")
-    #     prediction[:,i] = model[l].predict_proba(test)[:,1]
 
     for l, i in zip(labels, range(len(labels))):
         model[l] = xgb.XGBClassifier()

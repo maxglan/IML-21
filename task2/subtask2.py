@@ -19,22 +19,12 @@ def subtask2(trainf, trainl, test):
     
     """
     
-    print(" Start subtask 2 ")
+    print(" Start subtask 2 - Training the label Sepsis")
     
     y = trainl.LABEL_Sepsis
- 
-    # model = svm.SVC(kernel='sigmoid', probability=True)
-    # model.fit(trainf, y)
-    
-    # z = clf.decision_function(test)
-    
-        
-    print("Training the label Sepsis")
-    # result = model.predict_proba(test)
-    
     model = xgb.XGBClassifier()
     model.fit( trainf,y)
     result = model.predict_proba(test)
     prediction = expit(result[:,1])
     
-    return result
+    return prediction

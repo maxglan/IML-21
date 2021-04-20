@@ -11,9 +11,7 @@ from numba import njit
 
 from subtask1g import subtask1
 from subtask2 import subtask2
-from subtask3 import subtask3
-
-from score_submission import get_score, TESTS
+from subtask3g import subtask3
 
 
 """ Read the csv file """
@@ -155,30 +153,30 @@ test_features = deal_with_nans(testf, len(idtest), len(features))
 # normalised versions
 norm_train_features, norm_test_features = normalize_combined(train_features, test_features)
 
+# """ calculating nans badly"""
+# #returns badly reshaped and filled arrays
+# train_features_bad = deal_with_nans_badly(trainf, len(idtrain), len(features))
+# test_features_bad = deal_with_nans_badly(testf, len(idtest), len(features))
 
-#returns badly reshaped and filled arrays
-train_features_bad = deal_with_nans_badly(trainf, len(idtrain), len(features))
-test_features_bad = deal_with_nans_badly(testf, len(idtest), len(features))
-
-# normalised bad versions
-norm_train_features_bad, norm_test_features_bad = normalize_combined(train_features_bad, test_features_bad)
+# # normalised bad versions
+# norm_train_features_bad, norm_test_features_bad = normalize_combined(train_features_bad, test_features_bad)
 
 """ Subtasks """
 
-prediction1 = subtask1(train_features , trainl, test_features )
-# prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
+# prediction1 = subtask1(train_features , trainl, test_features )
+prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
-prediction2 = subtask2(train_features , trainl, test_features )
-# prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
+# prediction2 = subtask2(train_features , trainl, test_features )
+prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
 
-prediction3 = subtask3(train_features , trainl, test_features )
+prediction3 = subtask3(norm_train_features , trainl, norm_test_features )
 
 """bad subtasks"""
 # prediction1 = subtask1(norm_train_features_bad , trainl, norm_test_features_bad )
 
 # prediction2 = subtask2(norm_train_features_bad , trainl, norm_test_features_bad )
 
-# prediction3 = subtask3(train_features , trainl, test_features )
+# prediction3 = subtask3(train_features_bad , trainl, test_features_bad )
 
 
 """ Combining and converting the subtask's output"""
@@ -194,17 +192,3 @@ df["LABEL_Sepsis"] = prediction2
 df[["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"]] = prediction3
 
 df.to_csv('prediction.zip', index=False, float_format='%.3f', compression='zip')
-
-""" Score submission """
-
-# df_submission = pd.read_csv('prediction.zip')
-
-# # generate a baseline based on sample.zip
-# df_true = pd.read_csv('test_features.zip')
-# for label in TESTS + ['LABEL_Sepsis']:
-#     # round classification labels
-#     df_true[label] = np.around(df_true[label].values)
-
-# print('Score of sample.zip with itself as groundtruth', get_score(df_true, df_submission))
-
-

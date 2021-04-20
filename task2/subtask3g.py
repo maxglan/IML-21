@@ -7,7 +7,7 @@ import pandas as pd
 
 """ Functions """
 
-def subtask3g(trainf, trainl, test): 
+def subtask3(trainf, trainl, test): 
     """
     returns the predicted data using support vector regression
     """
@@ -22,6 +22,8 @@ def subtask3g(trainf, trainl, test):
 
     # performing 10 fold cross validation for 5 different lambdas on each of the 4 labels
     for i, j in zip(label, range(4)):
+        
+        print("Training the label " + i + ".")
     
         y[i] = trainl[i]
         model[i] = svm.SVR(kernel= 'rbf')
