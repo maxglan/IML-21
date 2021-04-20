@@ -96,7 +96,7 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
                 
                 start = a[np.isfinite(a)][0]
                 end = a[np.isfinite(a)][-1]          
-                trend = (start + end)*0.5
+                trend = end-start
                 
                 t_reshaped[j,f*2] = mean
                 t_reshaped[j,f*2 +1] = trend
