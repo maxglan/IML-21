@@ -75,7 +75,7 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
     
     #Creates a numpy array out of the pd dataframe
     arr = t_arr.to_numpy(float, True)
-    t_reshaped = np.zeros((num_ids, 37*2))
+    t_reshaped = np.zeros((num_ids, 37*4))
     
     for i,j in zip(np.arange(0, num_ids*12, 12), range(num_ids)):
         for f in range(num_feat):
@@ -85,12 +85,14 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
             #if yes: replace all with 0
             if np.all( np.isnan( a ) ) == True:
                 a = 0
-                t_reshaped[j,f*2 :f*2 +1]=0
+                t_reshaped[j,f*2 :f*2 +3]=0
                 
             #else if any entry is a nan eg local minimum
             elif np.any( np.isnan( a ) ) == True:
 
                 mean = np.nanmean( a )
+                minimum = np.nanmin( a )
+                maximum = np.nanmax( a )
                 
                 start = a[np.isfinite(a)][0]
                 end = a[np.isfinite(a)][-1]          
@@ -98,6 +100,8 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
                 
                 t_reshaped[j,f*2] = mean
                 t_reshaped[j,f*2 +1] = trend
+                t_reshaped[j,f*2 +2] = minimum
+                t_reshaped[j,f*2 +3] = maximum
         
     #get rid of multiple patient IDs:
     t = t_reshaped[:, 1:]
