@@ -84,7 +84,7 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
         t_reshaped[j,0] = arr[i,0]
         t_reshaped[j,1] = arr[i,1]
         
-        for f in np.arrange(2, num_feat):
+        for f in np.arange(2, num_feat):
             #check whether all entries of a specific feature of a patient are NaNs
             
             a=arr[i:i+12,f]
