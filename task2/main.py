@@ -159,22 +159,20 @@ norm_train_features_bad, norm_test_features_bad = normalize_combined(train_featu
 
 """ Subtasks """
 
-# # prediction1 = subtask1(train_features , trainl, test_features )
+prediction1 = subtask1(train_features , trainl, test_features )
 # prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 
-# #prediction2 = subtask2(train_features , trainl, test_features )
+prediction2 = subtask2(train_features , trainl, test_features )
 # prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
 
-# prediction3 = subtask3(train_features , trainl, test_features )
+prediction3 = subtask3(train_features , trainl, test_features )
 
 """bad subtasks"""
-# prediction1 = subtask1(train_features , trainl, test_features )
-prediction1 = subtask1(norm_train_features_bad , trainl, norm_test_features_bad )
+# prediction1 = subtask1(norm_train_features_bad , trainl, norm_test_features_bad )
 
-#prediction2 = subtask2(train_features , trainl, test_features )
-prediction2 = subtask2(norm_train_features_bad , trainl, norm_test_features_bad )
+# prediction2 = subtask2(norm_train_features_bad , trainl, norm_test_features_bad )
 
-prediction3 = subtask3(train_features , trainl, test_features )
+# prediction3 = subtask3(train_features , trainl, test_features )
 
 
 """ Combining and converting the subtask's output"""

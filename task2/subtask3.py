@@ -15,7 +15,7 @@ def subtask3(trainf, trainl, test):
     
     print(" Start subtask 3.")
     
-    # 10 folds
+    # folds
     k = 69
     
     label= ["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"]
