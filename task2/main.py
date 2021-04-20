@@ -151,8 +151,8 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 
 
 #returns badly reshaped and filled arrays
-train_features_bad = deal_with_nans(trainf, len(idtrain), len(features))
-test_features_bad = deal_with_nans(testf, len(idtest), len(features))
+train_features_bad = deal_with_nans_badly(trainf, len(idtrain), len(features))
+test_features_bad = deal_with_nans_badly(testf, len(idtest), len(features))
 
 # normalised bad versions
 norm_train_features_bad, norm_test_features_bad = normalize_combined(train_features_bad, test_features_bad)
