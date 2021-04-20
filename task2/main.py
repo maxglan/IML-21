@@ -34,21 +34,30 @@ features = list(trainf.columns)
 """  Deal with missing data points """
 #@njit
 def deal_with_nans(t_arr, num_ids, num_feat):
-    """ Returns the preprocessed and reshaped array """
+    """ Returns the preprocessed and reshaped array 
+    the pid and age just got one entry per row now """
     
     print(" Deal with missing data.")
     
     #Creates a numpy array out of the pd dataframe
     arr = t_arr.to_numpy(float, True)
-    t_reshaped = np.zeros((num_ids, 37*12))
+    # t_reshaped = np.zeros((num_ids, 37*12))
+    # here we already handle the pid, time and age directly (pid:1 column, time 12, age:1)
+    t_reshaped = np.zeros((num_ids, 37*12- 2*11))
+    num_feat_out= 12
     
-    for i in np.arange(0, num_ids*12, 12):
-        for f in range(num_feat):
+    for i,j in zip(np.arange(0, num_ids*12, 12), range(num_ids)):
+        #direct entry for pid and age
+        t_reshaped[j,0] = arr[i,0]
+        t_reshaped[j,1:13] = arr[i: i+12, 1]    
+        t_reshaped[j,14] = arr[i,2] 
+        
+        for f in np.arange(3, num_feat):
             #check whether all entries of a specific feature of a patient are NaNs
             
             #if yes: replace all with 0
             if np.all( np.isnan( arr[i:i+12,f] ) ) == True:
-                arr[i:i+12,f] = 0
+                t_reshaped[j, 14+(f-3)*num_feat_out: 14 + (f-3)*num_feat_out + num_feat_out]=0
                 
             #else if any entry is a nan eg local minimum
             elif np.any( np.isnan( arr[i:i+12,f] ) ) == True:
@@ -57,19 +66,15 @@ def deal_with_nans(t_arr, num_ids, num_feat):
                 #check wether specific entry is nan and then replace it with minimum
                 for v in range(12):
                     if np.isnan( arr[i+v,f] ) == True:
-                        arr[i+v,f] = minimum
-                        
-    """ Reshaping to use in SVM """
-    for i in range(num_ids):
-        t_reshaped[i,:] = np.reshape(arr[i*12: i*12 +12, :], (-1,), order = 'F')
-        
-    #get rid of multiple patient IDs:
-    t = t_reshaped[:, 11:]
+                        t_reshaped[j, 14+(f-3)*num_feat_out + v] = minimum
     
-    return t
+    return t_reshaped
       
 def deal_with_nans_badly(t_arr, num_ids, num_feat):
-    """ Returns the preprocessed and reshaped array """
+    """ Returns the preprocessed and reshaped array 
+    the pid and age just got one entry per row now, and we reduce to 5 features"""
+    
+    num_feat_out=5
     
     print(" Deal with missing data.")
     
@@ -77,21 +82,25 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
     # 5 features -> 37*5
     #we only make one entry for age and pid
     arr = t_arr.to_numpy(float, True)
-    t_reshaped = np.zeros((num_ids, 37*5 - 11*2))
+    t_reshaped = np.zeros((num_ids, 37*num_feat_out - 11*2))
     
     for i,j in zip(np.arange(0, num_ids*12, 12), range(num_ids)):
-        #direct entry for pid and age
-        t_reshaped[j,0] = arr[i,0]
-        t_reshaped[j,1] = arr[i,1]
+        # direct entry for pid and age
+        # t_reshaped[j,0] = arr[i,0]
+        # t_reshaped[j,1] = arr[i,1]
         
-        for f in np.arange(2, num_feat):
+        t_reshaped[j,0] = arr[i,0]
+        t_reshaped[j,1:13] = arr[i: i+12, 1]    
+        t_reshaped[j,14] = arr[i,2] 
+        
+        for f in np.arange(3, num_feat):
             #check whether all entries of a specific feature of a patient are NaNs
             
             a=arr[i:i+12,f]
+            
             #if yes: replace all with 0
             if np.all( np.isnan( a ) ) == True:
-                a = 0
-                t_reshaped[j,f*2 :f*2 +3]=0
+                t_reshaped[j, 14+(f-3)*num_feat_out: 14 + (f-3)*num_feat_out + num_feat_out]=0
                 
             #else if any entry is a nan eg local minimum
             elif np.any( np.isnan( a ) ) == True:
@@ -106,16 +115,13 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
                 
                 number = np.count_nonzero(~np.isnan(a))
                 
-                t_reshaped[j,f*2] = mean
-                t_reshaped[j,f*2 +1] = trend
-                t_reshaped[j,f*2 +2] = minimum
-                t_reshaped[j,f*2 +3] = maximum
-                t_reshaped[j,f*2 +4] = number
-        
-    #get rid of multiple patient IDs:
-    t = t_reshaped[:, 1:]
+                t_reshaped[j, 14+(f-3)*num_feat_out]=mean
+                t_reshaped[j, 14+(f-3)*num_feat_out + 1]= trend
+                t_reshaped[j, 14+(f-3)*num_feat_out + 2]= minimum
+                t_reshaped[j, 14+(f-3)*num_feat_out + 3]= maximum
+                t_reshaped[j, 14+(f-3)*num_feat_out + 4]= number
     
-    return t
+    return t_reshaped
 
 """ Normalize the data """
 # If we use non-linear SVM we first have to normalize the data using 
