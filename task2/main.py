@@ -79,10 +79,10 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
     print(" Deal with missing data.")
     
     #Creates a numpy array out of the pd dataframe
-    # 5 features -> 37*5
-    #we only make one entry for age and pid
+    # 5 features -> 34*5 for other features
+    #we only make one entry for age and pid, but 12 for the time
     arr = t_arr.to_numpy(float, True)
-    t_reshaped = np.zeros((num_ids, 37*num_feat_out - 11*2))
+    t_reshaped = np.zeros((num_ids, 34*num_feat_out + 2 + 12))
     
     for i,j in zip(np.arange(0, num_ids*12, 12), range(num_ids)):
         # direct entry for pid and age
