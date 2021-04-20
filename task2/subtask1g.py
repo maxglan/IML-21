@@ -10,6 +10,7 @@ Created on Mon Apr 19 10:23:32 2021
 import numpy as np
 import pandas as pd
 from sklearn import svm
+from scipy.special import expit
 import xgboost as xgb
 
 
@@ -33,12 +34,20 @@ def subtask1(trainf, trainl, test):
 
     prediction = np.zeros((len(test), len(labels)))
 
+    # for l, i in zip(labels, range(len(labels))):
+    #     model[l] = svm.SVC(kernel='sigmoid', probability=True)
+    #     model[l].fit(trainf, trainl[l])
+        
+    #     print("Training the label " + l + ".")
+    #     prediction[:,i] = model[l].predict_proba(test)[:,1]
+
     for l, i in zip(labels, range(len(labels))):
-        model[l] = svm.SVC(kernel='sigmoid', probability=True)
+        model[l] = xgb.XGBClassifier()
         model[l].fit(trainf, trainl[l])
         
         print("Training the label " + l + ".")
         prediction[:,i] = model[l].predict_proba(test)[:,1]
+        prediction[:,i] = expit(prediction[:,i])
     
     print( "End subtask 1 ")
     

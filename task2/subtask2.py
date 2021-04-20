@@ -27,13 +27,14 @@ def subtask2(trainf, trainl, test):
     # model.fit(trainf, y)
     
     # z = clf.decision_function(test)
-    # result = expit(z)
+    
         
     print("Training the label Sepsis")
     # result = model.predict_proba(test)
     
     model = xgb.XGBClassifier()
     model.fit( trainf,y)
-    result = model.predict(test)
+    result = model.predict_proba(test)
+    prediction = expit(result[:,1])
     
     return result
