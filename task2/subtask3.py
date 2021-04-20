@@ -16,10 +16,10 @@ def subtask3(trainf, trainl, test):
     print(" Start subtask 3.")
     
     # 10 folds
-    k = 10
+    k = 69
     
     label= ["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"]
-    l = np.array([0.1, 1, 10 , 100, 200]) #lambda
+    l = np.array([0.01, 0.1, 1, 10, 50, 100, 200]) #lambda
     length = len(l)
     y={}
     model={}
@@ -42,7 +42,7 @@ def subtask3(trainf, trainl, test):
             # T returns the array of scores of the estimator for each run of the cross validation
             T = cross_val_score(model[i][l_index], trainf, y[i], scoring='r2', cv=k)
             
-            score[l_index] = 0.1 * sum(T)
+            score[l_index] = 1/k * sum(T)
         
         #fitting our model with the best lambda
         best_lambda = np.argmax(score)

@@ -74,11 +74,17 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
     print(" Deal with missing data.")
     
     #Creates a numpy array out of the pd dataframe
+    # 5 features -> 37*5
+    #we only make one entry for age and pid
     arr = t_arr.to_numpy(float, True)
-    t_reshaped = np.zeros((num_ids, 37*4))
+    t_reshaped = np.zeros((num_ids, 37*5 - 11*2))
     
     for i,j in zip(np.arange(0, num_ids*12, 12), range(num_ids)):
-        for f in range(num_feat):
+        #direct entry for pid and age
+        t_reshaped[j,0] = arr[i,0]
+        t_reshaped[j,1] = arr[i,1]
+        
+        for f in np.arrange(2, range(num_feat)):
             #check whether all entries of a specific feature of a patient are NaNs
             
             a=arr[i:i+12,f]
@@ -96,12 +102,15 @@ def deal_with_nans_badly(t_arr, num_ids, num_feat):
                 
                 start = a[np.isfinite(a)][0]
                 end = a[np.isfinite(a)][-1]          
-                trend = (start + end)*0.5
+                trend = end-start
+                
+                number = np.count_nonzero(~np.isnan(a))
                 
                 t_reshaped[j,f*2] = mean
                 t_reshaped[j,f*2 +1] = trend
                 t_reshaped[j,f*2 +2] = minimum
                 t_reshaped[j,f*2 +3] = maximum
+                t_reshaped[j,f*2 +4] = number
         
     #get rid of multiple patient IDs:
     t = t_reshaped[:, 1:]
@@ -142,8 +151,8 @@ norm_train_features, norm_test_features = normalize_combined(train_features, tes
 
 
 #returns badly reshaped and filled arrays
-train_features_bad = deal_with_nans(trainf, len(idtrain), len(features))
-test_features_bad = deal_with_nans(testf, len(idtest), len(features))
+train_features_bad = deal_with_nans_badly(trainf, len(idtrain), len(features))
+test_features_bad = deal_with_nans_badly(testf, len(idtest), len(features))
 
 # normalised bad versions
 norm_train_features_bad, norm_test_features_bad = normalize_combined(train_features_bad, test_features_bad)
