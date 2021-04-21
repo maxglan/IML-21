@@ -11,7 +11,7 @@ from numba import njit
 
 from subtask1g import subtask1
 from subtask2 import subtask2
-from subtask3 import subtask3
+from subtask3g import subtask3
 
 from score_submission import get_score, TESTS
 
@@ -109,7 +109,7 @@ prediction1 = subtask1(norm_train_features , trainl, norm_test_features )
 # prediction2 = subtask2(train_features , trainl, test_features )
 prediction2 = subtask2(norm_train_features , trainl, norm_test_features )
 
-prediction3 = subtask3(train_features , trainl, test_features )
+prediction3 = subtask3(norm_train_features , trainl, norm_test_features )
 
 
 """ Combining and converting the subtask's output"""
