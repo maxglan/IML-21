@@ -16,10 +16,10 @@ def subtask3(trainf, trainl, test):
     print(" Start subtask 3.")
     
     # folds
-    k = 69
+    k = 10
     
     label= ["LABEL_RRate", "LABEL_ABPm", "LABEL_SpO2", "LABEL_Heartrate"]
-    l = np.array([0.01, 0.1, 1, 10, 50, 100, 200]) #lambda
+    l = np.array([0.1, 1, 10, 100, 200]) #lambda
     length = len(l)
     y={}
     model={}
