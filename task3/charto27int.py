@@ -11,15 +11,6 @@ import pandas as pd
 from sklearn.neural_network import MLPClassifier
 from numba import njit
 
-""" Read the csv file """
-
-print("Read CSV files")
-train = pd.read_csv("train.csv")
-test = pd.read_csv("test.csv")
-sample = np.loadtxt("sample.csv")
-
-#this gives me just the activity label of the training set
-active = train.iloc[:,1]
 
 """create a dataframe with 4 entries in each row (one for each Amino Acid), 
 where we convert the char of an acid into an int via the function ord"""
@@ -39,5 +30,3 @@ def chartoint(df):
             Sequence[i, j +26*m] += 1
         
     return Sequence
-
-train_sequence = chartoint(train)
