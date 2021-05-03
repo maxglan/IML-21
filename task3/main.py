@@ -38,7 +38,7 @@ test_sequence = chartoint(test)
 
 """training our Neural Network"""
 print("train NN")
-clf = MLPClassifier(hidden_layer_sizes = (1690, 690, 69), max_iter= 6900, verbose=True)
+clf = MLPClassifier(hidden_layer_sizes = (690, 420, 69), verbose=True)
 clf.fit(train_sequence, active)
 
 solution = clf.predict(test_sequence)

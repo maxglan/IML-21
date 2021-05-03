@@ -32,10 +32,12 @@ def chartoint(df):
     for i in range(length):
         l = list(df.iloc[i,0])
         
-        # -64 since A in Ascii starts at position 65
+        # -65 since A in Ascii starts at position 65
         number = [ord(k)-65 for k in l]
         
-        for j, m in enumerate(number, len(number)):
+        for j, m in zip(number, range(len(number))):
             Sequence[i, j +26*m] += 1
         
     return Sequence
+
+train_sequence = chartoint(train)
