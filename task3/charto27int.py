@@ -26,12 +26,14 @@ where we convert the char of an acid into an int via the function ord"""
 
 def chartoint(df):
     length = len(df.index)
+    # 4 acids * 26 letters
     Sequence = np.zeros((length, 26*4))
     
     for i in range(length):
         l = list(df.iloc[i,0])
         
-        number = [ord(k)-64 for k in l]
+        # -64 since A in Ascii starts at position 65
+        number = [ord(k)-65 for k in l]
         
         for j, m in enumerate(number, len(number)):
             Sequence[i, j +26*m] += 1
