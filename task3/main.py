@@ -6,6 +6,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.neural_network import MLPClassifier
+import xgboost as xgb
 from numba import njit
 
 """ Read the csv file """
@@ -42,15 +43,20 @@ train_sequence = chartoint(train)
 test_sequence = chartoint(test)
 
 """training our Neural Network"""
-print("train NN")
-clf = MLPClassifier(hidden_layer_sizes = (69, 42, 21), verbose=True)
-clf.fit(train_sequence, active)
 
+print("train NN")
+clf = MLPClassifier(hidden_layer_sizes = (26*4, 69, 13), verbose=True)
+clf.fit(train_sequence, active)
 solution = clf.predict(test_sequence)
 
+"""alternative approach using XGB"""
 
-print("The solution data has", np.sum(solution) , "active acids, should be on order of", int(np.sum(active)/(112/48)) )
+print("Booooooooooooooooooooooooooost")
+model = xgb.XGBClassifier()
+model.fit(train_sequence, active)
+solution_xgb = model.predict(test_sequence)
 
 
 """ store our solution in the sample file"""
 np.savetxt("prediction.csv", solution, fmt='%u')
+np.savetxt("prediction_xgb.csv", solution_xgb, fmt='%u')
