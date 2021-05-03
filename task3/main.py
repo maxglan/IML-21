@@ -5,16 +5,15 @@
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.neural_network import MLPClassifier
 from numba import njit
 
 """ Read the csv file """
 
-print(" Read CSV files")
+print("Read CSV files")
 train = pd.read_csv("train.csv")
 test = pd.read_csv("test.csv")
-sample = pd.read_csv("sample.csv")
+sample = np.loadtxt("sample.csv")
 
 #this gives me just the activity label of the training set
 active = train.iloc[:,1]
@@ -33,3 +32,20 @@ def chartoint(df):
         
     return Sequence
     
+# creating the sequence dataframes
+train_sequence = chartoint(train)
+test_sequence = chartoint(test)
+
+"""training our Neural Network"""
+print("train NN")
+clf = MLPClassifier(solver='lbfgs', alpha=1e-5, max_iter= 6900, random_state=1)
+clf.fit(train_sequence, active)
+
+solution = clf.predict(test_sequence)
+
+
+print("The solution data has", np.sum(solution) , "active acids, should be on order of", int(np.sum(active)/(112/48)) )
+
+
+""" store our solution in the sample file"""
+np.savetxt("prediction.csv", solution, fmt='%u')
