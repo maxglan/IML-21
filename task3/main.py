@@ -45,18 +45,18 @@ test_sequence = chartoint(test)
 """training our Neural Network"""
 
 print("train NN")
-clf = MLPClassifier(hidden_layer_sizes = (26*4, 69, 13), verbose=True)
+clf = MLPClassifier(hidden_layer_sizes = (26*4, 52, 26), verbose=True)
 clf.fit(train_sequence, active)
 solution = clf.predict(test_sequence)
 
 """alternative approach using XGB"""
 
-print("Booooooooooooooooooooooooooost")
-model = xgb.XGBClassifier()
-model.fit(train_sequence, active)
-solution_xgb = model.predict(test_sequence)
+# print("Booooooooooooooooooooooooooost")
+# model = xgb.XGBClassifier()
+# model.fit(train_sequence, active)
+# solution_xgb = model.predict(test_sequence)
 
 
 """ store our solution in the sample file"""
 np.savetxt("prediction.csv", solution, fmt='%u')
-np.savetxt("prediction_xgb.csv", solution_xgb, fmt='%u')
+# np.savetxt("prediction_xgb.csv", solution_xgb, fmt='%u')
