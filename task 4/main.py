@@ -152,13 +152,6 @@ model = tf.keras.Model([single_input, single_input, single_input], concat)
 model.compile( optimizer = 'adam', loss = triplet_loss)
 
 
-
-
-
-
-
-
-
 """1) calculate features using imagenet
     2) concatenate them into a single vector
     3) train a NN using that vector with the the loss specified
