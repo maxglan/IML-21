@@ -18,7 +18,6 @@ from tensorflow.keras import optimizers
 from tensorflow.keras import metrics
 from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
-import efficientnet.keras as efn
 
 
 #importing the txt with the image names

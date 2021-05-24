@@ -98,8 +98,11 @@ base_model = resnet.ResNet50(input_shape = target_shape + (3,), include_top = Fa
 def feature_trafo(anchor, positive, negative):
     """takes all three lists of images and returns the output in the form (n_images, anchor_output + positive_output + negative_output)
     here each x_output is a reshaped array of the oroginal multi dimensional output array of the used NN """
+    """Pretraining anchor"""
     features_anchor = base_model.predict(anchor)
+    """Pretraining positive"""
     features_positive = base_model.predict(positive)
+    """Pretraining negative"""
     features_negative = base_model.predict(negative)
     
     shape= np.shape(features_anchor)
@@ -122,21 +125,34 @@ np.savetxt("test_features.csv", test_data)
 
 
 """defining our new NN"""
-def triplet_loss(A):
-    margin=0
-    length = len(A)
-    t = int((length+1) / 3)
+length = len(training_data[0,:])
+t = int(length/ 3)
+
+def triplet_loss(true, A):
+    margin=0.4
     a = A[:t]
     b = A[t: 2*t]
     c = A[2*t:]
     return max(0, np.linalg.norm(a, b) - np.linalg.norm(a, c) + margin)
 
-def NN(input_size, output_size):
+def NN(input_size):
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Dense(input_size, activation="relu"))
-    model.add(tf.keras.layers.Dense(output_size, activation="relu"))
-    model.compile(loss = triplet_loss)
+    model.add(tf.keras.layers.Dense(420,input_dim=input_size, activation="relu"))
+    model.add(tf.keras.layers.Dense(13, activation="relu"))
+    model.compile()
     return model
+
+single_input = tf.keras.Input(np.shape(training_data[0,:]))
+
+single_model = NN(training_data[0,:])
+
+concat = tf.keras.concatenate([single_model, single_model, single_model])
+
+model = tf.keras.Model([single_input, single_input, single_input], concat)
+model.compile( optimizer = 'adam', loss = triplet_loss)
+
+
+
 
 
 
