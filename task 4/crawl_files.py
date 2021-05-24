@@ -20,8 +20,6 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
 from tensorflow.keras.applications import EfficientNetB0
 
-tt = np.arange(0, 10000, dtype = int)
-
 """function that produces all image names ordered"""
 def list_creator(tt):
     l=[str(0)] * 10000
@@ -33,6 +31,7 @@ def list_creator(tt):
         l[i] = l[i] + str(i)
     return l
 
+tt = np.arange(0, 10000, dtype = int)
 images = list_creator(tt)
 
 """1) importing images into format required by NN 
@@ -69,7 +68,9 @@ def feature_trafo(anchor):
     features_anchor = base_model.predict(anchor)
     
     shape= np.shape(features_anchor)
+    
     f_a = np.reshape(features_anchor, (shape[0], -1))
     return f_a
 
-complete = base_model.predict(complete_dataset)
+complete = feature_trafo(complete_dataset)
+np.savetxt("complete_B0.csv", complete)
