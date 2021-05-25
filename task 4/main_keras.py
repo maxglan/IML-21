@@ -8,9 +8,7 @@ Created on Sat May 22 17:42:45 2021
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import random
 import tensorflow as tf
-from pathlib import Path
 from tensorflow.keras import applications
 from tensorflow.keras import layers
 from tensorflow.keras import losses
@@ -18,20 +16,16 @@ from tensorflow.keras import optimizers
 from tensorflow.keras import metrics
 from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
+from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.keras.applications import efficientnet
+from numpy.linalg import norm
+
+
 
 
 #importing the txt with the image names
 train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')
 test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')
-
-
-"""implementation from https://keras.io/examples/vision/siamese_network/"""
-
-""" To do:
-    1) import images into format required by NN (arrays or whatever, size reformatting to (224,224,3))
-    2) augment images (eg Rotations) for better accuracy
-    3) apply NN
-"""
 
 """1) importing images into format required by NN """
 
@@ -94,26 +88,45 @@ train_dataset = train_dataset.prefetch(8)
 val_dataset = val_dataset.batch(100)
 val_dataset = val_dataset.prefetch(8)
 
+#repeat for test data
+anchor_test = list(
+    [str(cwd + "/food/" + f +".jpg") for f in test_triplets[:,0]])
+
+positive_test = sorted(
+    [str(cwd + "/food/" + f +".jpg") for f in test_triplets[:,1]])
+
+negative_test = sorted(
+    [str(cwd + "/food/" + f +".jpg") for f in test_triplets[:,2]])
+
+
+anchor_test = tf.data.Dataset.from_tensor_slices(anchor_test)
+positive_test = tf.data.Dataset.from_tensor_slices(positive_test)
+negative_test = tf.data.Dataset.from_tensor_slices(negative_test)
+
+anchor_test = anchor_test.map(preprocess_image)
+positive_test = positive_test.map(preprocess_image)
+negative_test = negative_test.map(preprocess_image)
+
 """3) Setting up the embedding generator model """
-base_cnn = resnet.ResNet50(
+base_cnn = EfficientNetB0(
     weights="imagenet", input_shape=target_shape + (3,), include_top=False
 )
 
+for layer in base_cnn.layers:
+    layer.trainable = False
+
 flatten = layers.Flatten()(base_cnn.output)
-dense1 = layers.Dense(512, activation="relu")(flatten)
+dense1 = layers.Dense(69, activation="relu")(flatten)
 dense1 = layers.BatchNormalization()(dense1)
-dense2 = layers.Dense(256, activation="relu")(dense1)
-dense2 = layers.BatchNormalization()(dense2)
-output = layers.Dense(256)(dense2)
+output = layers.Dense(13)(dense1)
 
 embedding = Model(base_cnn.input, output, name="Embedding")
 
-trainable = False
-for layer in base_cnn.layers:
-    if layer.name == "conv5_block1_out":
-        trainable = True
-    layer.trainable = trainable
-    
+# trainable = False
+# for layer in base_cnn.layers:
+#     if layer.name == "conv5_block1_out":
+#         trainable = True
+#     layer.trainable = trainable 
     
 class DistanceLayer(layers.Layer):
     """
@@ -136,9 +149,9 @@ positive_input = layers.Input(name="positive", shape=target_shape + (3,))
 negative_input = layers.Input(name="negative", shape=target_shape + (3,))
 
 distances = DistanceLayer()(
-    embedding(resnet.preprocess_input(anchor_input)),
-    embedding(resnet.preprocess_input(positive_input)),
-    embedding(resnet.preprocess_input(negative_input)),
+    embedding(efficientnet.preprocess_input(anchor_input)),
+    embedding(efficientnet.preprocess_input(positive_input)),
+    embedding(efficientnet.preprocess_input(negative_input)),
 )
 
 siamese_network = Model(
@@ -201,7 +214,7 @@ class SiameseModel(Model):
         # Computing the Triplet Loss by subtracting both distances and
         # making sure we don't get a negative value.
         loss = ap_distance - an_distance
-        loss = tf.maximum(loss + self.margin, 0.0)
+        loss = tf.maximum(loss + self.margin, 0.2)
         return loss
 
     @property
@@ -209,7 +222,54 @@ class SiameseModel(Model):
         # We need to list our metrics here so the `reset_states()` can be
         # called automatically.
         return [self.loss_tracker]
-    
+ 
+"""fitting our model"""
+
+# cb = tf.keras.callbacks.EarlyStopping(
+#     monitor='val_loss', min_delta=0, patience=0, verbose=0,
+#     mode='auto', baseline=None, restore_best_weights=False
+# )
+
+# cb_list = [cb, ...]
+
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
-siamese_model.fit(train_dataset, epochs=10, validation_data=val_dataset)
+siamese_model.fit(train_dataset, epochs=1, validation_data=val_dataset)
+
+"""testing our model"""
+
+# anchor_t = layers.Input(name="at", shape=target_shape + (3,))
+# positive_t = layers.Input(name="pt", shape=target_shape + (3,))
+# negative_t = layers.Input(name="nt", shape=target_shape + (3,))
+
+length = len(anchor_test)
+t = int(length/ 3)
+
+#dataset_test = tf.data.Dataset.zip((anchor_test, positive_test, negative_test))
+#at, pt, nt = dataset_test
+
+
+anchor_embedding, positive_embedding, negative_embedding = (
+    embedding(efficientnet.preprocess_input(anchor_test)),
+    embedding(efficientnet.preprocess_input(positive_test)),
+    embedding(efficientnet.preprocess_input(negative_test)),
+)
+
+def cos_sim(a, b):
+    return np.dot(a, b)/(norm(a)*norm(b))
+
+def similarity(A, B, C):
+    x = len(A[:,0])
+    result = np.zeros(x)
+    for i in range(x):
+        ab = cos_sim(A[i,:], B[i,:])
+        ac = cos_sim(A[i,:], C[i,:])
+        if ab > ac:
+            result[i]=1
+    return result
+
+
+
+result = similarity(anchor_embedding, positive_embedding, negative_embedding)
+
+np.savetxt("stupid_result.txt", result)
