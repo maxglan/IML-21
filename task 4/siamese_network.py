@@ -46,15 +46,19 @@ from tensorflow.keras import metrics
 from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
 
+from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.keras.applications import efficientnet
+
 import pathlib
 
 target_shape = (200, 200)
 
 # max_image_count
-max_train_image = 10
-max_val_image = 10
+max_train_count = 4000
+max_val_count = 200
+max_test_count = 200
 
-epochs = 2
+epochs = 3
 
 
 """
@@ -76,10 +80,10 @@ images_path = cache_dir / "food"
 
 #importing the txt with the image names
 train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')
-val_triplets = np.genfromtxt("test_triplets.txt", dtype='str')
+test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')
 
 
-def path_to_dataset(triplets, max_image_count: int = 1000): 
+def path_to_dataset(triplets, start: int=0, max_image_count: int=1000): 
     """
 
     Parameters
@@ -97,7 +101,7 @@ def path_to_dataset(triplets, max_image_count: int = 1000):
     """
     
     # Reduce size of dataset
-    triplets = triplets[:max_image_count,:]
+    triplets = triplets[start:(start+max_image_count),:]
     
     # Get paths
     A_images = [str(images_path) + "\\" +  str(n) + ".jpg" for n in triplets[:,0]]
@@ -161,8 +165,15 @@ contains the same triplet with every image loaded and preprocessed.
 """
 
 # Let's now split our dataset in train and validation.
-train_dataset = path_to_dataset(train_triplets, max_image_count=max_train_image) 
-val_dataset = path_to_dataset(val_triplets, max_image_count=max_val_image) 
+train_dataset = path_to_dataset(train_triplets, 
+                                start=0, 
+                                max_image_count=max_train_count) 
+val_dataset = path_to_dataset(train_triplets, 
+                              start=max_train_count,
+                              max_image_count=max_val_count) 
+test_dataset = path_to_dataset(test_triplets, 
+                              start=0,
+                              max_image_count=max_test_count) 
 
 train_dataset = train_dataset.batch(32, drop_remainder=False)
 train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
@@ -210,6 +221,8 @@ We are going to leave the bottom few layers trainable, so that we can fine-tune 
 during training.
 """
 
+""" Original version of CNN setup
+
 base_cnn = resnet.ResNet50(
     weights="imagenet", input_shape=target_shape + (3,), include_top=False
 )
@@ -228,6 +241,25 @@ for layer in base_cnn.layers:
     if layer.name == "conv5_block1_out":
         trainable = True
     layer.trainable = trainable
+    
+    
+"""
+
+
+base_cnn = EfficientNetB0(
+    weights="imagenet", input_shape=target_shape + (3,), include_top=False
+)
+
+for layer in base_cnn.layers:
+    layer.trainable = False
+
+flatten = layers.Flatten()(base_cnn.output)
+dense1 = layers.Dense(69, activation="relu")(flatten)
+dense1 = layers.BatchNormalization()(dense1)
+output = layers.Dense(13)(dense1)
+
+embedding = Model(base_cnn.input, output, name="Embedding")
+
 
 """
 ## Setting up the Siamese Network model
@@ -385,9 +417,6 @@ for i, val_dataset_item in enumerate(val_dataset):
     C_embedding =  embedding(resnet.preprocess_input(C))
     
     for j in range(A_embedding.shape[0]):
-        
-        print("A_embedding[j]: ", A_embedding[j])
-        print("B_embedding[j]: ", B_embedding[j])
         
         AB_similarity = cosine_similarity(A_embedding[j], B_embedding[j])
         print("Positive similarity:", AB_similarity.numpy())
