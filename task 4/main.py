@@ -8,7 +8,7 @@ Created on Sat May 22 17:42:45 2021
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import random
+import gc
 import tensorflow as tf
 from pathlib import Path
 from tensorflow.keras import applications
@@ -19,6 +19,8 @@ from tensorflow.keras import metrics
 from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
 from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.python.keras.models import Sequential
+
 # import efficientnet.keras as efn
 
 
@@ -41,6 +43,7 @@ def preprocess_image(filename):
     image = tf.image.convert_image_dtype(image, tf.float32)
     image = tf.image.resize(image, target_shape)
     return image
+    # return image[None]
 
 def preprocess_triplets(anchor, positive, negative):
     """
@@ -79,11 +82,11 @@ image_count = len(anchor_images)
 train_dataset = dataset.take(round(image_count * 0.8))
 val_dataset = dataset.skip(round(image_count * 0.8))
 
-train_dataset = train_dataset.batch(100)
-train_dataset = train_dataset.prefetch(8)
+train_dataset = train_dataset.batch(2)
+# train_dataset = train_dataset.prefetch(8)
 
-val_dataset = val_dataset.batch(100)
-val_dataset = val_dataset.prefetch(8)
+val_dataset = val_dataset.batch(2)
+# val_dataset = val_dataset.prefetch(8)
 
 #repeat for test data
 anchor_test = list(
@@ -104,20 +107,20 @@ dataset_test = dataset_test.map(preprocess_triplets)
 
 """ 2) Setting up the embedding generator model """
 #size of output layer
-emb_size = 12
+emb_size = 8
 
 base_model = EfficientNetB0(input_shape = target_shape + (3,), include_top = False, weights = 'imagenet')
 
-for layer in base_model.layers:
-    layer.trainable = False
+base_model.trainable = False
 
-flatten = layers.Flatten()(base_model.output)
-dense1 = layers.Dense(64, activation="relu")(flatten)
-dense1 = layers.BatchNormalization()(dense1)
+pool = layers.MaxPool2D(pool_size=(7,7))
+pool_layer = pool(base_model.output)
+flatten = layers.Flatten()(pool_layer)
+dense1 = layers.Dense(32, activation="relu")(flatten)
 output = layers.Dense(emb_size)(dense1)
 
 embedding = Model(base_model.input, output, name="Embedding")
-embedding.summary()
+# embedding.summary()
 
 """creating the Siamese Network"""
 input_anchor = tf.keras.layers.Input(target_shape + (3,))
@@ -130,26 +133,24 @@ embedding_negative = embedding(input_negative)
 
 output_emb = tf.keras.layers.concatenate([embedding_anchor, embedding_positive, embedding_negative], axis=1)
 
-siam_model = tf.keras.models.Model(inputs = [input_anchor, input_positive, input_negative], 
+siam_model = tf.keras.models.Model(inputs = [(input_anchor, input_positive, input_negative)], 
                                    outputs = output_emb)
-
-siam_model.summary()
+# siam_model.summary()
 
 #defining the triplet loss
 margin = 0.2
 
 def triplet_loss(y_true, y_pred):
-    anchor, positive, negative = y_pred[:,:emb_size], y_pred[:,emb_size:2*emb_size], y_pred[:,2*emb_size:]
+    anchor, positive, negative = y_pred[:emb_size], y_pred[emb_size:2*emb_size], y_pred[2*emb_size:]
     positive_dist = np.linalg.norm(anchor - positive)
     negative_dist = np.linalg.norm(anchor - negative)
     return tf.maximum(positive_dist - negative_dist + margin, 0.)
 
 """fitting model"""
 siam_model.compile(loss = triplet_loss, optimizer ='adam')
+siam_model.fit(tuple(train_dataset), epochs=1, validation_data = tuple(val_dataset), verbose=1)
 
-siam_model.fit(train_dataset, epochs=1, validation_data=val_dataset)
-
-# """ alternative fitting version"""
+""" alternative fitting version"""
 # anchor_dataset = anchor_dataset.map(preprocess_image)
 # positive_dataset = positive_dataset.map(preprocess_image)
 # negative_dataset = negative_dataset.map(preprocess_image)

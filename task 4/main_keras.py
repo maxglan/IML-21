@@ -5,7 +5,6 @@ Created on Sat May 22 17:42:45 2021
 
 @author: georgengin
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import tensorflow as tf
@@ -103,9 +102,8 @@ anchor_test = tf.data.Dataset.from_tensor_slices(anchor_test)
 positive_test = tf.data.Dataset.from_tensor_slices(positive_test)
 negative_test = tf.data.Dataset.from_tensor_slices(negative_test)
 
-anchor_test = anchor_test.map(preprocess_image)
-positive_test = positive_test.map(preprocess_image)
-negative_test = negative_test.map(preprocess_image)
+test_dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_dataset))
+test_dataset = test_dataset.map(preprocess_triplets)
 
 """3) Setting up the embedding generator model """
 base_cnn = EfficientNetB0(
@@ -157,6 +155,7 @@ distances = DistanceLayer()(
 siamese_network = Model(
     inputs=[anchor_input, positive_input, negative_input], outputs=distances
 )
+
 
 class SiameseModel(Model):
     """The Siamese Network model with a custom training and testing loops.
@@ -230,13 +229,25 @@ class SiameseModel(Model):
 #     mode='auto', baseline=None, restore_best_weights=False
 # )
 
-# cb_list = [cb, ...]
+# cb_list = [cb, ...]¨
+
+
 
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
+
+# print("data", train_dataset)
+# print("model", siamese_model.input)
+
 siamese_model.fit(train_dataset, epochs=1, validation_data=val_dataset)
 
+"""testing our model, alternative"""
+
+pre = siamese_model.predict(tuple(test_dataset))
+print(np.shape(pre))
+
 """testing our model"""
+
 
 # anchor_t = layers.Input(name="at", shape=target_shape + (3,))
 # positive_t = layers.Input(name="pt", shape=target_shape + (3,))
@@ -247,13 +258,9 @@ t = int(length/ 3)
 
 #dataset_test = tf.data.Dataset.zip((anchor_test, positive_test, negative_test))
 #at, pt, nt = dataset_test
-
-
-anchor_embedding, positive_embedding, negative_embedding = (
-    embedding(efficientnet.preprocess_input(anchor_test)),
-    embedding(efficientnet.preprocess_input(positive_test)),
-    embedding(efficientnet.preprocess_input(negative_test)),
-)
+anchor_embedding = embedding.predict(anchor_test)
+positive_embedding = embedding(positive_test)
+negative_embedding = embedding(negative_test)
 
 def cos_sim(a, b):
     return np.dot(a, b)/(norm(a)*norm(b))
