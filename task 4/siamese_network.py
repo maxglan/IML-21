@@ -386,10 +386,13 @@ for i, val_dataset_item in enumerate(val_dataset):
     
     for j in range(A_embedding.shape[0]):
         
-        AB_similarity = cosine_similarity(A_embedding, B_embedding)
+        print("A_embedding[j]: ", A_embedding[j])
+        print("B_embedding[j]: ", B_embedding[j])
+        
+        AB_similarity = cosine_similarity(A_embedding[j], B_embedding[j])
         print("Positive similarity:", AB_similarity.numpy())
         
-        AC_similarity = cosine_similarity(A_embedding, C_embedding)
+        AC_similarity = cosine_similarity(A_embedding[j], C_embedding[j])
         print("Negative similarity", AC_similarity.numpy())
         
         if AB_similarity.numpy() > AC_similarity.numpy(): 
