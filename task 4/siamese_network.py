@@ -51,15 +51,16 @@ from tensorflow.keras.applications import efficientnet
 
 import pathlib
 
-target_shape = (200, 200)
+#required size for EfficientNetB0
+target_shape = (224,224)
 
 # max_image_count
-max_train_count = 4000
-max_val_count = 200
-max_test_count = 200
+max_train_count = 1000
+max_val_count = 50
+max_test_count = 50
 
-epochs = 3
-
+batchsize = 10
+epochs = 5
 
 """
 ## Load the dataset
@@ -104,9 +105,9 @@ def path_to_dataset(triplets, start: int=0, max_image_count: int=1000):
     triplets = triplets[start:(start+max_image_count),:]
     
     # Get paths
-    A_images = [str(images_path) + "\\" +  str(n) + ".jpg" for n in triplets[:,0]]
-    B_images = [str(images_path) + "\\" + str(n) + ".jpg" for n in triplets[:,1]]
-    C_images = [str(images_path) + "\\" +  str(n) + ".jpg" for n in triplets[:,2]]
+    A_images = [str(images_path) + "/" +  str(n) + ".jpg" for n in triplets[:,0]]
+    B_images = [str(images_path) + "/" + str(n) + ".jpg" for n in triplets[:,1]]
+    C_images = [str(images_path) + "/" +  str(n) + ".jpg" for n in triplets[:,2]]
 
     # Convert path to datasets
     A_dataset = tf.data.Dataset.from_tensor_slices(A_images)
@@ -115,7 +116,7 @@ def path_to_dataset(triplets, start: int=0, max_image_count: int=1000):
     
     # Combine datasets
     dataset = tf.data.Dataset.zip((A_dataset, B_dataset, C_dataset))
-    dataset = dataset.shuffle(buffer_size=1024)
+    # dataset = dataset.shuffle(buffer_size=1024)
     dataset = dataset.map(preprocess_triplets)
     
     return dataset
@@ -138,7 +139,13 @@ def preprocess_image(filename):
     resize it to the target shape.
     """
 
-    image_string = tf.io.read_file(filename)
+    try: 
+      print("Read " + filename)
+      image_string = tf.io.read_file(filename)
+    except: 
+      print("The image with string: " + str(filename) + "could not be loaded")
+      image_string = tf.io.read_file(images_path + "00000.jpg")
+    
     image = tf.image.decode_jpeg(image_string, channels=3)
     image = tf.image.convert_image_dtype(image, tf.float32)
     image = tf.image.resize(image, target_shape)
@@ -175,12 +182,14 @@ test_dataset = path_to_dataset(test_triplets,
                               start=0,
                               max_image_count=max_test_count) 
 
-train_dataset = train_dataset.batch(32, drop_remainder=False)
+train_dataset = train_dataset.batch(batchsize, drop_remainder=False)
 train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
 
-val_dataset = val_dataset.batch(32, drop_remainder=False)
+val_dataset = val_dataset.batch(batchsize, drop_remainder=False)
 val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
 
+test_dataset = test_dataset.batch(batchsize, drop_remainder=False)
+test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
 
 """
 Let's take a look at a few examples of triplets. Notice how the first two images
@@ -380,6 +389,35 @@ class SiameseModel(Model):
         return [self.loss_tracker]
 
 
+print("Make predictions 1")
+
+results1 = []
+cosine_similarity = metrics.CosineSimilarity()
+
+for i, test_dataset_item in enumerate(test_dataset): 
+    
+    A, B, C = test_dataset_item
+    
+    A_embedding = embedding(resnet.preprocess_input(A))
+    B_embedding = embedding(resnet.preprocess_input(B))
+    C_embedding =  embedding(resnet.preprocess_input(C))
+    
+    for j in range(A_embedding.shape[0]):
+        
+        AB_similarity = cosine_similarity(A_embedding[j], B_embedding[j])
+        #print("Positive similarity:", AB_similarity.numpy())
+        
+        AC_similarity = cosine_similarity(A_embedding[j], C_embedding[j])
+        #print("Negative similarity", AC_similarity.numpy())
+        
+        if AB_similarity.numpy() > AC_similarity.numpy(): 
+            results1.append(1)
+        else:
+            results1.append(0)
+
+np.savetxt("result1.txt", results1, fmt='%i') 
+
+
 """
 ## Training
 
@@ -403,14 +441,14 @@ Let's pick a sample from the dataset to check the similarity between the
 embeddings generated for each image.
 """
 
-results = []
+print("Make predictions 2")
+
+results2 = []
 cosine_similarity = metrics.CosineSimilarity()
 
-print("val_dataset: ", val_dataset)
-
-for i, val_dataset_item in enumerate(val_dataset): 
+for i, test_dataset_item in enumerate(test_dataset): 
     
-    A, B, C = val_dataset_item
+    A, B, C = test_dataset_item
     
     A_embedding = embedding(resnet.preprocess_input(A))
     B_embedding = embedding(resnet.preprocess_input(B))
@@ -419,19 +457,18 @@ for i, val_dataset_item in enumerate(val_dataset):
     for j in range(A_embedding.shape[0]):
         
         AB_similarity = cosine_similarity(A_embedding[j], B_embedding[j])
-        print("Positive similarity:", AB_similarity.numpy())
+        #print("Positive similarity:", AB_similarity.numpy())
         
         AC_similarity = cosine_similarity(A_embedding[j], C_embedding[j])
-        print("Negative similarity", AC_similarity.numpy())
+        #print("Negative similarity", AC_similarity.numpy())
         
         if AB_similarity.numpy() > AC_similarity.numpy(): 
-            results.append(1)
+            results2.append(1)
         else:
-            results.append(0)
+            results2.append(0)
 
-print(results)
+np.savetxt("result2.txt", results2, fmt='%i') 
 
-np.savetxt("stupid_result.txt", np.array(results, dtype=int)) 
 
 """
 ## Summary
