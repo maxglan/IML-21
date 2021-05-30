@@ -9,6 +9,7 @@ Custom network
 
 import numpy as np
 import pandas as pd
+import sys
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
@@ -16,7 +17,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
 from tensorflow.keras.applications import EfficientNetB0
 
-import coremltools as ct
+#import coremltools as ct
 
 import pathlib
 
@@ -26,11 +27,11 @@ import pathlib
 target_shape = (224,224)
 
 # max_image_count
-max_train_count = 50
+max_train_count = 4000
 max_test_count = 50
 
-batch_size = 5
-epochs = 2
+batch_size = 30
+epochs = 10
 
 
 """ Load data """
@@ -68,6 +69,7 @@ def modify_for_classification(triplets, do_shuffle=False):
 train_triplets, train_y = modify_for_classification(triplets=train_triplets, 
                                                   do_shuffle=True)
 
+
 def path_to_dataset(triplets, max_image_count: int=1000): 
     """
 
@@ -102,7 +104,7 @@ def path_to_dataset(triplets, max_image_count: int=1000):
     dataset = tf.data.Dataset.zip((A_dataset, B_dataset, C_dataset))
 
     
-    # dataset = dataset.shuffle(buffer_size=1024)
+    dataset = dataset.shuffle(buffer_size=1024)
     dataset = dataset.map(preprocess_triplets)
     
     return dataset
@@ -142,12 +144,17 @@ def preprocess_triplets(A, B, C):
 train_dataset = path_to_dataset(train_triplets, max_image_count=max_train_count)  
 test_dataset = path_to_dataset(test_triplets, max_image_count=max_test_count) 
 
+train_y = tf.data.Dataset.from_tensor_slices([[train_y[i]] for i in range(max_train_count)])
+
+train_dataset = tf.data.Dataset.zip((train_dataset, train_y))
+
 # Batch datasets
 train_dataset = train_dataset.batch(batch_size, drop_remainder=False)
 train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
 test_dataset = test_dataset.batch(batch_size, drop_remainder=False)
 test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
 
+print(train_dataset)
 
 """ Model 0 
 # encoder_input = keras.Input(shape=(28, 28, 1), name="original_img")
@@ -210,56 +217,60 @@ for layer in base_cnn_C.layers:
     layer.trainable = False
     layer._name = str(layer._name) + '_C'
 base_cnn_C = Model(inputs=base_cnn_C.input, outputs=base_cnn_C.outputs, name="base_cnn_C")
-    
-outputs = layers.Dense(50, activation='sigmoid')(layers.concatenate([base_cnn_A.output, base_cnn_B.output, base_cnn_C.output]))
 
-model = Model(inputs=[base_cnn_A.input, base_cnn_B.input, base_cnn_C.input], outputs=outputs)
 
-flatten = layers.Flatten()(model.output)
+class ConcatenationLayer(layers.Layer):
+    """
+    This layer is responsible for computing the distance between the anchor
+    embedding and the positive embedding, and the anchor embedding and the
+    negative embedding.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def call(self, anchor, positive, negative):
+        return layers.Concatenate()([anchor, positive, negative])
+
+
+A_input = layers.Input(name="A", shape=target_shape + (3,))
+B_input = layers.Input(name="B", shape=target_shape + (3,))
+C_input = layers.Input(name="C", shape=target_shape + (3,))
+
+concat = ConcatenationLayer()(
+    base_cnn_A(resnet.preprocess_input(A_input)),
+    base_cnn_B(resnet.preprocess_input(B_input)),
+    base_cnn_C(resnet.preprocess_input(C_input)),
+)
+
+model = Model(
+    inputs=[A_input, B_input, C_input], outputs=concat
+)
+
+
+
+print(len(model.outputs))
+
+flatten = layers.Flatten()(model.outputs[0])
 dense1 = layers.Dense(50, activation="relu")(flatten)
-dense2 = layers.Dense(50, activation="relu")(dense1)
-dense2 = layers.BatchNormalization()(dense2)
-dense3 = layers.Dense(9, activation="relu")(dense2)
+dense1 = layers.BatchNormalization()(dense1)
+dense3 = layers.Dense(9, activation="relu")(dense1)
 dense3 = layers.BatchNormalization()(dense3)
 classifer_layer = layers.Dense(1, activation="sigmoid")(dense3)
 
-model = Model(inputs=model.input, outputs=classifer_layer)
-#model = Model(inputs=[base_cnn_A.input, base_cnn_B.input, base_cnn_C.input], outputs=classifer_layer)
-
-
-#embedding = Model(inputs=model.input, outputs=model.output, name="Embedding")
-
-
-# input_A = embedding(resnet.preprocess_input(input_A))
-# input_B = embedding(resnet.preprocess_input(input_B))
-# input_C = embedding(resnet.preprocess_input(input_C))
-
-# Combined input
-#combined = layers.concatenate([input_A, input_B, input_C])           
-#combined = layers.Dense(9, activation="relu")(combined)
-
-#combined = layers.BatchNormalization()(combined)
-#combined = layers.Dense(1, activation="sigmoid")(combined)
-
-# our model will accept the inputs of the two branches and
-# then output a single value
-#model = Model(inputs=[x.input, y.input], outputs=z)
-
-#model = Model(inputs=[input_A, input_B, input_C], 
-              #outputs=combined)
+model = Model(inputs=[A_input, B_input, C_input], outputs=classifer_layer)
+model.summary()
 
 
 """ Train binary classifier """
 
-print(train_dataset)
 
-model.compile()
+
+model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 model.fit(x=train_dataset, 
-          #y=train_y[:max_train_count], 
           batch_size=batch_size, 
-          epochs=epochs, 
-   )
+          epochs=epochs)
 
 
 """ Predict """
