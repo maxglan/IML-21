@@ -16,6 +16,8 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
 from tensorflow.keras.applications import EfficientNetB0
 
+import coremltools as ct
+
 import pathlib
 
 """ Parameters """
@@ -51,7 +53,6 @@ def modify_for_classification(triplets, do_shuffle=False):
         np.random.shuffle(triplets)
     
     number = triplets.shape[0]
-    print(number)
     
     y = np.random.randint(2, size=number) # array with 0 and 1
     
@@ -99,6 +100,8 @@ def path_to_dataset(triplets, max_image_count: int=1000):
     
     # Combine datasets
     dataset = tf.data.Dataset.zip((A_dataset, B_dataset, C_dataset))
+
+    
     # dataset = dataset.shuffle(buffer_size=1024)
     dataset = dataset.map(preprocess_triplets)
     
@@ -146,72 +149,128 @@ test_dataset = test_dataset.batch(batch_size, drop_remainder=False)
 test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
 
 
-""" Model """
-
-# Pre trained part
-
-model = models.Sequential()
-
-base_cnn = EfficientNetB0(
-    weights="imagenet", input_shape=target_shape + (3,), include_top=False
-)
-
-for layer in base_cnn.layers:
-    layer.trainable = False
-    
-model.add(base_cnn)
-
-model.add(layers.Flatten())
-model.add(layers.Dense(50, activation="relu"))
-model.add(layers.BatchNormalization())
-model.add(layers.Dense(9, activation="relu"))
-model.add(layers.BatchNormalization())
-
-# flatten = layers.Flatten()(base_cnn.output)
-# dense1 = layers.Dense(50, activation="relu")(flatten)
-# dense1 = layers.BatchNormalization()(dense1)
-# dense2 = layers.Dense(9, activation="relu")(dense1)
-# output = layers.BatchNormalization()(dense2)
-
-embedding = Model(inputs=model.input, outputs=model.output, name="Embedding")
+""" Model 0 
+# encoder_input = keras.Input(shape=(28, 28, 1), name="original_img")
 
 input_A = layers.Input(name="A", shape=target_shape + (3,))
 input_B = layers.Input(name="B", shape=target_shape + (3,))
 input_C = layers.Input(name="C", shape=target_shape + (3,))
+
+A = 
+
+x = layers.Conv2D(16, 3, activation="relu")(encoder_input)
+x = layers.Conv2D(32, 3, activation="relu")(x)
+x = layers.MaxPooling2D(3)(x)
+x = layers.Conv2D(32, 3, activation="relu")(x)
+x = layers.Conv2D(16, 3, activation="relu")(x)
+encoder_output = layers.GlobalMaxPooling2D()(x)
+
+encoder = keras.Model(encoder_input, encoder_output, name="encoder")
+encoder.summary()
+
+decoder_input = keras.Input(shape=(16,), name="encoded_img")
+x = layers.Reshape((4, 4, 1))(decoder_input)
+x = layers.Conv2DTranspose(16, 3, activation="relu")(x)
+x = layers.Conv2DTranspose(32, 3, activation="relu")(x)
+x = layers.UpSampling2D(3)(x)
+x = layers.Conv2DTranspose(16, 3, activation="relu")(x)
+decoder_output = layers.Conv2DTranspose(1, 3, activation="relu")(x)
+
+decoder = keras.Model(decoder_input, decoder_output, name="decoder")
+decoder.summary()
+
+autoencoder_input = keras.Input(shape=(28, 28, 1), name="img")
+encoded_img = encoder(autoencoder_input)
+decoded_img = decoder(encoded_img)
+autoencoder = keras.Model(autoencoder_input, decoded_img, name="autoencoder")
+autoencoder.summary()
+ 
+"""
+
+
+""" Model """
+
+# Pre trained part
+
+
+base_cnn_A = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+for layer in base_cnn_A.layers:
+    layer.trainable = False
+    layer._name = str(layer._name) + '_A'
+base_cnn_A = Model(inputs=base_cnn_A.input, outputs=base_cnn_A.outputs, name="base_cnn_A")
+
+base_cnn_B = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+for layer in base_cnn_B.layers:
+    layer.trainable = False
+    layer._name = str(layer._name) + '_B'
+base_cnn_B = Model(inputs=base_cnn_B.input, outputs=base_cnn_B.outputs, name="base_cnn_B")
+    
+base_cnn_C = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+for layer in base_cnn_C.layers:
+    layer.trainable = False
+    layer._name = str(layer._name) + '_C'
+base_cnn_C = Model(inputs=base_cnn_C.input, outputs=base_cnn_C.outputs, name="base_cnn_C")
+    
+outputs = layers.Dense(50, activation='sigmoid')(layers.concatenate([base_cnn_A.output, base_cnn_B.output, base_cnn_C.output]))
+
+model = Model(inputs=[base_cnn_A.input, base_cnn_B.input, base_cnn_C.input], outputs=outputs)
+
+flatten = layers.Flatten()(model.output)
+dense1 = layers.Dense(50, activation="relu")(flatten)
+dense2 = layers.Dense(50, activation="relu")(dense1)
+dense2 = layers.BatchNormalization()(dense2)
+dense3 = layers.Dense(9, activation="relu")(dense2)
+dense3 = layers.BatchNormalization()(dense3)
+classifer_layer = layers.Dense(1, activation="sigmoid")(dense3)
+
+model = Model(inputs=model.input, outputs=classifer_layer)
+#model = Model(inputs=[base_cnn_A.input, base_cnn_B.input, base_cnn_C.input], outputs=classifer_layer)
+
+
+#embedding = Model(inputs=model.input, outputs=model.output, name="Embedding")
+
 
 # input_A = embedding(resnet.preprocess_input(input_A))
 # input_B = embedding(resnet.preprocess_input(input_B))
 # input_C = embedding(resnet.preprocess_input(input_C))
 
 # Combined input
-combined = layers.concatenate([input_A, input_B, input_C])              
-combined = layers.Dense(9, activation="relu")(combined)
+#combined = layers.concatenate([input_A, input_B, input_C])           
+#combined = layers.Dense(9, activation="relu")(combined)
 
-combined = layers.BatchNormalization()(combined)
-combined = layers.Dense(1, activation="sigmoid")(combined)
+#combined = layers.BatchNormalization()(combined)
+#combined = layers.Dense(1, activation="sigmoid")(combined)
 
 # our model will accept the inputs of the two branches and
 # then output a single value
 #model = Model(inputs=[x.input, y.input], outputs=z)
 
-model = Model(inputs=[input_A, input_B, input_C], 
-              outputs=combined)
+#model = Model(inputs=[input_A, input_B, input_C], 
+              #outputs=combined)
 
 
 """ Train binary classifier """
 
+print(train_dataset)
+
 model.compile()
 
 model.fit(x=train_dataset, 
-          y=train_y[:max_train_count], 
+          #y=train_y[:max_train_count], 
           batch_size=batch_size, 
           epochs=epochs, 
    )
+
 
 """ Predict """
 
 
 """ Save results """
+
+
+""" Finish """
+
+print("Finish")
 
 
 
