@@ -27,12 +27,20 @@ import pathlib
 target_shape = (224,224)
 
 # max_image_count
-max_train_count = 4000
-max_test_count = 50
+max_train_count = 60000
+max_test_count = 60000
 
-batch_size = 30
-epochs = 10
+batch_size = 50
+epochs = 20
 
+# Optimizer 
+
+# learning_rate = 1e-4, epsilon = 1e-7
+adam = tf.keras.optimizers.Adam(learning_rate=0.02, epsilon=0.1) 
+
+sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
+
+opt = adam
 
 """ Load data """
 
@@ -68,7 +76,7 @@ def modify_for_classification(triplets, do_shuffle=False):
 
 train_triplets, train_y = modify_for_classification(triplets=train_triplets, 
                                                   do_shuffle=True)
-
+print(train_y[:100])
 
 def path_to_dataset(triplets, max_image_count: int=1000): 
     """
@@ -103,8 +111,7 @@ def path_to_dataset(triplets, max_image_count: int=1000):
     # Combine datasets
     dataset = tf.data.Dataset.zip((A_dataset, B_dataset, C_dataset))
 
-    
-    dataset = dataset.shuffle(buffer_size=1024)
+    # dataset = dataset.shuffle(buffer_size=1024)
     dataset = dataset.map(preprocess_triplets)
     
     return dataset
@@ -144,7 +151,7 @@ def preprocess_triplets(A, B, C):
 train_dataset = path_to_dataset(train_triplets, max_image_count=max_train_count)  
 test_dataset = path_to_dataset(test_triplets, max_image_count=max_test_count) 
 
-train_y = tf.data.Dataset.from_tensor_slices([[train_y[i]] for i in range(max_train_count)])
+train_y = tf.data.Dataset.from_tensor_slices([[train_y[i]] for i in range(len(train_triplets))])
 
 train_dataset = tf.data.Dataset.zip((train_dataset, train_y))
 
@@ -154,7 +161,6 @@ train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
 test_dataset = test_dataset.batch(batch_size, drop_remainder=False)
 test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
 
-print(train_dataset)
 
 """ Model 0 
 # encoder_input = keras.Input(shape=(28, 28, 1), name="original_img")
@@ -232,31 +238,30 @@ class ConcatenationLayer(layers.Layer):
     def call(self, anchor, positive, negative):
         return layers.Concatenate()([anchor, positive, negative])
 
-
 A_input = layers.Input(name="A", shape=target_shape + (3,))
 B_input = layers.Input(name="B", shape=target_shape + (3,))
 C_input = layers.Input(name="C", shape=target_shape + (3,))
 
+leaky_relu = layers.LeakyReLU(alpha=0.1)
+dim_red = layers.Dense(15, activation=leaky_relu, input_shape=[7, 7, 1280])
+
 concat = ConcatenationLayer()(
-    base_cnn_A(resnet.preprocess_input(A_input)),
-    base_cnn_B(resnet.preprocess_input(B_input)),
-    base_cnn_C(resnet.preprocess_input(C_input)),
+    dim_red(base_cnn_A(resnet.preprocess_input(A_input))),
+    dim_red(base_cnn_B(resnet.preprocess_input(B_input))),
+    dim_red(base_cnn_C(resnet.preprocess_input(C_input))),
 )
 
 model = Model(
     inputs=[A_input, B_input, C_input], outputs=concat
 )
 
+print(model.outputs)
+print(model.outputs[0])
 
-
-print(len(model.outputs))
-
-flatten = layers.Flatten()(model.outputs[0])
-dense1 = layers.Dense(50, activation="relu")(flatten)
-dense1 = layers.BatchNormalization()(dense1)
-dense3 = layers.Dense(9, activation="relu")(dense1)
-dense3 = layers.BatchNormalization()(dense3)
-classifer_layer = layers.Dense(1, activation="sigmoid")(dense3)
+flatten = layers.Flatten()(model.outputs[0]) 
+dense = layers.Dense(15, activation=leaky_relu)(flatten)
+dense = layers.BatchNormalization()(dense)
+classifer_layer = layers.Dense(1, activation="sigmoid")(dense)
 
 model = Model(inputs=[A_input, B_input, C_input], outputs=classifer_layer)
 model.summary()
@@ -265,8 +270,7 @@ model.summary()
 """ Train binary classifier """
 
 
-
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
 
 model.fit(x=train_dataset, 
           batch_size=batch_size, 
