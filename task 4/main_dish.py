@@ -43,9 +43,9 @@ def get_features(do_extract: bool=do_extract):
         feature_set = set()
         prediction_list = []
         
-        for i in range(number_of_images):
+        for i_img in range(number_of_images):
         
-            img_path = images_path / (str(i).zfill(5) + ".jpg")
+            img_path = images_path / (str(i_img).zfill(5) + ".jpg")
             img = image.load_img(img_path, target_size=(224, 224))
             x = image.img_to_array(img)
             x = np.expand_dims(x, axis=0)
@@ -93,8 +93,8 @@ print(prediction_list)
 feature_space_dimension = len(feature_list)
 
 feature_to_index = {}
-for i, feature in enumerate(feature_list): 
-    feature_to_index[feature] = i
+for i_f, feature in enumerate(feature_list): 
+    feature_to_index[feature] = i_f
     
 print(feature_to_index)
 
@@ -102,34 +102,84 @@ index_to_feature = {value:key for key, value in feature_to_index.items()}
 print(index_to_feature)
 
 
+""" Image (i_img) <-> prediction <-> vector mapping via indexing"""
 
-""" Prediction to vector conversion """
-
-prediction_vector_list = []
-
-for prediction in prediction_list:
-    
-    prediction_vector = np.zeros(feature_space_dimension)
+def prediction_to_vector(prediction): 
+    vector = np.zeros(feature_space_dimension)
     
     for prediction_item in prediction:
         
         nr, name, probability = prediction_item
         index = feature_to_index[name]
-        prediction_vector[index] = probability
+        vector[index] = probability
         
-    prediction_vector_list.append(prediction_vector)
-    
-print(prediction_vector_list) 
+    return vector
 
+vector_list = []
+
+for prediction in prediction_list:
+    
+    vector = prediction_to_vector(prediction)
+    vector_list.append(vector)
+    
+# print(vector_list) 
+    
 
 """ Generate dataset similar to the result of path_to_dataset() """
 
-def triplets_to_dataset(): 
+def triple_to_dataset(triplets):
+    """ Make the dateset ready for binary classification """
     
-    dataset = 0 
+    number = triplets.shape[0]
+    tupels = []
+    y = []
+    
+    # Split triplets into tupels. Use symmetry between AB and BA. 
+    for n in range(number):
+            i_img_A = int(triplets[n,0])
+            i_img_B = int(triplets[n,1])
+            i_img_C = int(triplets[n,2])
+            
+            # Conversion to vector
+            A = vector_list[i_img_A]
+            B = vector_list[i_img_B]
+            C = vector_list[i_img_C]
+            
+            # Similar taste
+            tupels.append([A,B])
+            tupels.append([B,A])
+            y.append([1])
+            y.append([1])
+            
+            # Different taste
+            tupels.append([A,C])
+            tupels.append([C,A])
+            y.append([0])
+            y.append([0])
+        
+    # Convert to np.array
+    tupels = np.array(tupels)
+    y = np.array(y)
+           
+    # Shuffle input and output the same way
+    shuffle_indices = np.random.permutation(number*4)
+    tupels = tupels[shuffle_indices]
+    y = y[shuffle_indices]
+    
+    
+    # Convert path to datasets
+    X_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,0])
+    Y_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,1])
+
+    # Combine datasets
+    dataset = tf.data.Dataset.zip((X_dataset, Y_dataset, y))
     
     return dataset
 
+training_dataset = triple_to_dataset(train_triplets)
+
+
+print(training_dataset)
 
 """ Model """
 
