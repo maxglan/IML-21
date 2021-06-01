@@ -21,8 +21,8 @@ model = ResNet50(weights='imagenet')
 
 """ Parameters """
 
-do_extract = False
-number_of_images = 10
+do_extract = True
+get_only = 10000
 
 """ Load data """
 
@@ -30,20 +30,31 @@ number_of_images = 10
 images_path = pathlib.Path().absolute() / "food"
 
 #importing the txt with the image names
-train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')[:number_of_images]
-test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')[:number_of_images]
+train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')[:get_only]
+test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')[:get_only]
 
 
 """ Extract features """
 
-def get_features(do_extract: bool=do_extract): 
-
-    if do_extract: 
+def get_features(do_extract: bool=do_extract, number_of_images=10000): 
     
-        feature_set = set()
-        prediction_list = []
+    prediction_list = []
+    feature_set = set()
+    
+    try: 
+        with open('feature_list.pkl', 'rb') as f:
+            feature_list = pickle.load(f)
+        with open('prediction_list.pkl', 'rb') as f:
+            prediction_list = pickle.load(f)
         
-        for i_img in range(number_of_images):
+    except:
+        print("There are no old predictions that can be used.")
+        
+    if do_extract: 
+        
+        for i_img in range(len(prediction_list), number_of_images):
+            
+            print("Image number: " + str(i_img))
         
             img_path = images_path / (str(i_img).zfill(5) + ".jpg")
             img = image.load_img(img_path, target_size=(224, 224))
@@ -62,8 +73,6 @@ def get_features(do_extract: bool=do_extract):
                 nr, name, probability = prediction_item 
                 feature_set.add(name)
                 
-
-                
         feature_list = list(feature_set)
         print(feature_list) 
     
@@ -80,8 +89,10 @@ def get_features(do_extract: bool=do_extract):
             prediction_list = pickle.load(f)
             
     return feature_list, prediction_list
-        
-feature_list, prediction_list = get_features(do_extract)
+
+for i_img in [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]:
+    feature_list, prediction_list = get_features(do_extract, number_of_images=i_img)
+    
 print(feature_list)
 print(prediction_list)
 
