@@ -30,8 +30,8 @@ number_of_images = 10
 images_path = pathlib.Path().absolute() / "food"
 
 #importing the txt with the image names
-train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')[:10]
-test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')[:10]
+train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')[:number_of_images]
+test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')[:number_of_images]
 
 
 """ Extract features """
