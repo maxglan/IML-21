@@ -122,6 +122,28 @@ for prediction in prediction_list:
 print(prediction_vector_list) 
 
 
+""" Generate dataset similar to the result of path_to_dataset() """
+
+def triplets_to_dataset(): 
+    
+    dataset = 0 
+    
+    return dataset
+
+
+""" Model """
+
+
+
+""" Training """
+
+
+""" Prediction """
+
+
+
+""" Prediction to CSV """
+
     
     
 
