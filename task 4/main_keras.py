@@ -78,8 +78,8 @@ dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_datase
 dataset = dataset.shuffle(buffer_size=1024)
 dataset = dataset.map(preprocess_triplets)
 
-train_dataset = dataset.take(round(image_count * 0.8))
-val_dataset = dataset.skip(round(image_count * 0.8))
+train_dataset = dataset.take(round(image_count * 0.1))
+val_dataset = dataset.skip(round(image_count * 0.1))
 
 train_dataset = train_dataset.batch(100)
 train_dataset = train_dataset.prefetch(8)
@@ -98,12 +98,19 @@ negative_test = sorted(
     [str(cwd + "/food/" + f +".jpg") for f in test_triplets[:,2]])
 
 
+test_dummy_np = np.zeros(len(anchor_test))
+test_dummy = tf.data.Dataset.from_tensor_slices(test_dummy_np)
+
 anchor_test = tf.data.Dataset.from_tensor_slices(anchor_test)
 positive_test = tf.data.Dataset.from_tensor_slices(positive_test)
 negative_test = tf.data.Dataset.from_tensor_slices(negative_test)
 
 test_dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_dataset))
 test_dataset = test_dataset.map(preprocess_triplets)
+
+test_dataset = tf.data.Dataset.zip((test_dataset, test_dummy))
+
+
 
 """3) Setting up the embedding generator model """
 base_cnn = EfficientNetB0(
@@ -243,8 +250,9 @@ siamese_model.fit(train_dataset, epochs=1, validation_data=val_dataset)
 
 """testing our model, alternative"""
 
-pre = siamese_model.predict(tuple(test_dataset))
-print(np.shape(pre))
+
+pre = siamese_model.predict(test_dataset)
+#print(np.shape(pre))
 
 """testing our model"""
 # anchor_t = layers.Input(name="at", shape=target_shape + (3,))

@@ -8,7 +8,7 @@ Custom network
 """
 
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import sys
 
 import tensorflow as tf
@@ -27,8 +27,8 @@ import pathlib
 target_shape = (224,224)
 
 # max_image_count
-max_train_count = 60000
-max_test_count = 60000
+max_train_count = 4000
+max_test_count = 400
 
 batch_size = 50
 epochs = 20
@@ -157,9 +157,9 @@ train_dataset = tf.data.Dataset.zip((train_dataset, train_y))
 
 # Batch datasets
 train_dataset = train_dataset.batch(batch_size, drop_remainder=False)
-train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
+train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 test_dataset = test_dataset.batch(batch_size, drop_remainder=False)
-test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
+test_dataset = test_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
 
 """ Model 0 
@@ -206,23 +206,40 @@ autoencoder.summary()
 # Pre trained part
 
 
-base_cnn_A = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
-for layer in base_cnn_A.layers:
-    layer.trainable = False
-    layer._name = str(layer._name) + '_A'
-base_cnn_A = Model(inputs=base_cnn_A.input, outputs=base_cnn_A.outputs, name="base_cnn_A")
+# base_cnn_A = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+# for layer in base_cnn_A.layers:
+#     layer.trainable = False
+#     layer._name = str(layer._name) + '_A'
+# base_cnn_A = Model(inputs=base_cnn_A.input, outputs=base_cnn_A.outputs, name="base_cnn_A")
 
-base_cnn_B = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
-for layer in base_cnn_B.layers:
-    layer.trainable = False
-    layer._name = str(layer._name) + '_B'
-base_cnn_B = Model(inputs=base_cnn_B.input, outputs=base_cnn_B.outputs, name="base_cnn_B")
+# base_cnn_B = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+# for layer in base_cnn_B.layers:
+#     layer.trainable = False
+#     layer._name = str(layer._name) + '_B'
+# base_cnn_B = Model(inputs=base_cnn_B.input, outputs=base_cnn_B.outputs, name="base_cnn_B")
     
-base_cnn_C = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
-for layer in base_cnn_C.layers:
+# base_cnn_C = EfficientNetB0(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+# for layer in base_cnn_C.layers:
+#     layer.trainable = False
+#     layer._name = str(layer._name) + '_C'
+# base_cnn_C = Model(inputs=base_cnn_C.input, outputs=base_cnn_C.outputs, name="base_cnn_C")
+
+
+base_cnn = EfficientNetB0(
+    weights="imagenet", input_shape=target_shape + (3,), include_top=False
+)
+
+for layer in base_cnn.layers:
     layer.trainable = False
-    layer._name = str(layer._name) + '_C'
-base_cnn_C = Model(inputs=base_cnn_C.input, outputs=base_cnn_C.outputs, name="base_cnn_C")
+
+flatten = layers.Flatten()(base_cnn.output)
+dense1 = layers.Dense(69, activation="relu")(flatten)
+dense1 = layers.BatchNormalization()(dense1)
+output = layers.Dense(13)(dense1)
+
+embedding = Model(base_cnn.input, output, name="Embedding")
+
+
 
 
 class ConcatenationLayer(layers.Layer):
@@ -246,9 +263,9 @@ leaky_relu = layers.LeakyReLU(alpha=0.1)
 dim_red = layers.Dense(15, activation=leaky_relu, input_shape=[7, 7, 1280])
 
 concat = ConcatenationLayer()(
-    dim_red(base_cnn_A(resnet.preprocess_input(A_input))),
-    dim_red(base_cnn_B(resnet.preprocess_input(B_input))),
-    dim_red(base_cnn_C(resnet.preprocess_input(C_input))),
+    dim_red(embedding(resnet.preprocess_input(A_input))),
+    dim_red(embedding(resnet.preprocess_input(B_input))),
+    dim_red(embedding(resnet.preprocess_input(C_input))),
 )
 
 model = Model(

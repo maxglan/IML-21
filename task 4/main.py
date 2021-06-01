@@ -20,6 +20,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import resnet
 from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.python.keras.models import Sequential
+#from tensorflow.python.experimental.numpy import heaviside
 
 # import efficientnet.keras as efn
 
@@ -100,8 +101,11 @@ dataset = dataset.shuffle(buffer_size=1024)
 dataset = dataset.map(preprocess_triplets)
 
 #split into validation set
-image_count = len(anchor_images)
+#image_count = len(anchor_images)
+image_count = 4000
+
 image_round = (round(image_count * 0.8), image_count - round(image_count * 0.8)) #= (47612, 11903)
+
 
 train_dataset = dataset.take(round(image_count * 0.8))
 val_dataset = dataset.skip(round(image_count * 0.8))
@@ -179,6 +183,21 @@ def triplet_loss(y_true, y_pred):
     negative_dist = tf.reduce_mean(tf.square(anchor - negative), axis=1)
     return tf.maximum(positive_dist - negative_dist + margin, 0.)
 
+cosine_similarity = metrics.CosineSimilarity()
+
+
+def pos_sim(y_true, y_pred):
+    anchor, positive, negative = y_pred[:,:emb_size], y_pred[:,emb_size:2*emb_size], y_pred[:,2*emb_size:]
+    positive_dist = cosine_similarity(anchor,positive)
+    #negative_dist = cosine_similarity(anchor,negative)
+    return positive_dist
+
+def neg_sim(y_true, y_pred):
+    anchor, positive, negative = y_pred[:,:emb_size], y_pred[:,emb_size:2*emb_size], y_pred[:,2*emb_size:]
+    #positive_dist = cosine_similarity(anchor,positive)
+    negative_dist = cosine_similarity(anchor,negative)
+    return negative_dist
+
 """3.5) create dummy y values, see model.fit documentation"""
 train_dummy_np = np.zeros((image_round[0], emb_size * 3))
 val_dummy_np = np.zeros((image_round[1], emb_size * 3))
@@ -188,8 +207,15 @@ train_dummy = train_dummy.batch(100)
 val_dummy = tf.data.Dataset.from_tensor_slices(train_dummy_np)
 val_dummy = val_dummy.batch(100)
 
+adam = tf.keras.optimizers.Adam(learning_rate=0.02, epsilon=0.1) 
+
+sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
+
+opt = sgd
+
+
 """4) fitting model"""
-siam_model.compile(loss = triplet_loss, optimizer ='adam')
+siam_model.compile(loss = triplet_loss, optimizer = opt, metrics = [pos_sim, neg_sim])
 
 input_fit = tf.data.Dataset.zip((train_dataset, train_dummy))
 val_fit = tf.data.Dataset.zip((val_dataset, val_dummy))
