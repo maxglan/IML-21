@@ -45,6 +45,17 @@ def preprocess_image(filename):
     return image
     # return image[None]
 
+def preprocess_image_N(filename):
+    """
+    Load the specified file as a JPG image, preprocess it and resize it to the target shape.
+    """
+
+    image_string = tf.io.read_file(filename)
+    image = tf.image.decode_jpeg(image_string, channels=3)
+    image = tf.image.convert_image_dtype(image, tf.float32)
+    image = tf.image.resize(image, target_shape)
+    return image[None]
+    
 def preprocess_triplets(anchor, positive, negative):
     """
     Given the filenames corresponding to the three images, load and preprocess them.
@@ -54,6 +65,17 @@ def preprocess_triplets(anchor, positive, negative):
         preprocess_image(anchor),
         preprocess_image(positive),
         preprocess_image(negative),
+    )
+
+def preprocess_triplets_N(anchor, positive, negative):
+    """
+    Given the filenames corresponding to the three images, load and preprocess them.
+    """
+
+    return (
+        preprocess_image_N(anchor),
+        preprocess_image_N(positive),
+        preprocess_image_N(negative),
     )
 
 """ 1.5) importing images into tf.Dataset"""
@@ -79,13 +101,15 @@ dataset = dataset.map(preprocess_triplets)
 
 #split into validation set
 image_count = len(anchor_images)
+image_round = (round(image_count * 0.8), image_count - round(image_count * 0.8)) #= (47612, 11903)
+
 train_dataset = dataset.take(round(image_count * 0.8))
 val_dataset = dataset.skip(round(image_count * 0.8))
 
-train_dataset = train_dataset.batch(2)
+train_dataset = train_dataset.batch(100)
 # train_dataset = train_dataset.prefetch(8)
 
-val_dataset = val_dataset.batch(2)
+val_dataset = val_dataset.batch(100)
 # val_dataset = val_dataset.prefetch(8)
 
 #repeat for test data
@@ -103,14 +127,15 @@ positive_test = tf.data.Dataset.from_tensor_slices(positive_test)
 negative_test = tf.data.Dataset.from_tensor_slices(negative_test)
 
 dataset_test = tf.data.Dataset.zip((anchor_test, positive_test, negative_test))
-dataset_test = dataset_test.map(preprocess_triplets)
+dataset_test = dataset_test.map(preprocess_triplets_N)
+
+#dataset_test is <MapDataset shapes: ((224, 224, 3), (224, 224, 3), (224, 224, 3)), types: (tf.float32, tf.float32, tf.float32)>
 
 """ 2) Setting up the embedding generator model """
 #size of output layer
 emb_size = 8
 
 base_model = EfficientNetB0(input_shape = target_shape + (3,), include_top = False, weights = 'imagenet')
-
 base_model.trainable = False
 
 pool = layers.MaxPool2D(pool_size=(7,7))
@@ -122,58 +147,75 @@ output = layers.Dense(emb_size)(dense1)
 embedding = Model(base_model.input, output, name="Embedding")
 # embedding.summary()
 
-"""creating the Siamese Network"""
-input_anchor = tf.keras.layers.Input(target_shape + (3,))
-input_positive = tf.keras.layers.Input(target_shape + (3,))
-input_negative = tf.keras.layers.Input(target_shape + (3,))
+"""3) creating the Siamese Network"""
+input_anchor = layers.Input(target_shape + (3,))
+input_positive = layers.Input(target_shape + (3,))
+input_negative = layers.Input(target_shape + (3,))
 
 embedding_anchor = embedding(input_anchor)
 embedding_positive = embedding(input_positive)
 embedding_negative = embedding(input_negative)
 
-output_emb = tf.keras.layers.concatenate([embedding_anchor, embedding_positive, embedding_negative], axis=1)
+output_emb = layers.concatenate([embedding_anchor, embedding_positive, embedding_negative], axis=1)
 
-siam_model = tf.keras.models.Model(inputs = [(input_anchor, input_positive, input_negative)], 
+siam_model = tf.keras.models.Model(inputs = [input_anchor, input_positive, input_negative], 
                                    outputs = output_emb)
+
+"""
+siam_model asks for input: (<KerasTensor: shape=(None, 224, 224, 3) dtype=float32 (created by layer 'input_2')>, 
+          <KerasTensor: shape=(None, 224, 224, 3) dtype=float32 (created by layer 'input_3')>, 
+          <KerasTensor: shape=(None, 224, 224, 3) dtype=float32 (created by layer 'input_4')>)
+
+siam_model has output: # KerasTensor(type_spec=TensorSpec(shape=(None, 24), dtype=tf.float32, name=None)
+"""
 # siam_model.summary()
 
 #defining the triplet loss
 margin = 0.2
 
 def triplet_loss(y_true, y_pred):
-    anchor, positive, negative = y_pred[:emb_size], y_pred[emb_size:2*emb_size], y_pred[2*emb_size:]
-    positive_dist = np.linalg.norm(anchor - positive)
-    negative_dist = np.linalg.norm(anchor - negative)
+    anchor, positive, negative = y_pred[:,:emb_size], y_pred[:,emb_size:2*emb_size], y_pred[:,2*emb_size:]
+    positive_dist = tf.reduce_mean(tf.square(anchor - positive), axis=1)
+    negative_dist = tf.reduce_mean(tf.square(anchor - negative), axis=1)
     return tf.maximum(positive_dist - negative_dist + margin, 0.)
 
-"""fitting model"""
+"""3.5) create dummy y values, see model.fit documentation"""
+train_dummy_np = np.zeros((image_round[0], emb_size * 3))
+val_dummy_np = np.zeros((image_round[1], emb_size * 3))
+
+train_dummy = tf.data.Dataset.from_tensor_slices(train_dummy_np)
+train_dummy = train_dummy.batch(100)
+val_dummy = tf.data.Dataset.from_tensor_slices(train_dummy_np)
+val_dummy = val_dummy.batch(100)
+
+"""4) fitting model"""
 siam_model.compile(loss = triplet_loss, optimizer ='adam')
-siam_model.fit(tuple(train_dataset), epochs=1, validation_data = tuple(val_dataset), verbose=1)
 
-""" alternative fitting version"""
-# anchor_dataset = anchor_dataset.map(preprocess_image)
-# positive_dataset = positive_dataset.map(preprocess_image)
-# negative_dataset = negative_dataset.map(preprocess_image)
+input_fit = tf.data.Dataset.zip((train_dataset, train_dummy))
+val_fit = tf.data.Dataset.zip((val_dataset, val_dummy))
 
-# siam_model.compile(loss = triplet_loss, optimizer ='adam')
-# siam_model.fit([anchor_dataset, positive_dataset, negative_dataset], epochs=1)
+siam_model.fit(input_fit, epochs=10, validation_data = val_fit, verbose=1)
+# siam_model.fit(train_dataset, epochs=1, validation_data = val_dataset, verbose=1)
 
-"""applying on test set"""
-# predicted_vectors = siam_model.predict(dataset_test)
 
-# #create ourput file
-# def choose(prediction):
-#     length = len(predicted_vectors[:,0])
-#     result = np.zeros(length)
-#     for i in range(length):
-#         anchor, positive, negative = prediction[i,:emb_size], prediction[i,emb_size:2*emb_size], prediction[i,2*emb_size:]
-#         positive_dist = np.linalg.norm(anchor - positive)
-#         negative_dist = np.linalg.norm(anchor - negative)
-#         if positive_dist > negative_dist:
-#             result[i] = 1
-#     return result
+"""5) applying on test set"""
+test_dummy_np = np.zeros((image_count, emb_size * 3))
+test_dummy = tf.data.Dataset.from_tensor_slices(test_dummy_np)
+test_fit = tf.data.Dataset.zip((dataset_test, test_dummy))
 
-# result = choose(predicted_vectors)
-# np.savetxt("stupid_result.txt", result)
-    
+predicted_vectors = siam_model.predict(test_fit)
 
+#create ourput file
+def choose(prediction):
+    length = len(predicted_vectors[0,:])
+    result = np.zeros(length, dtype = int)
+    for i in range(length):
+        anchor, positive, negative = prediction[i,:emb_size], prediction[i,emb_size:2*emb_size], prediction[i,2*emb_size:]
+        positive_dist = np.linalg.norm(anchor - positive)
+        negative_dist = np.linalg.norm(anchor - negative)
+        if positive_dist > negative_dist:
+            result[i] = 1
+    return result
+
+result = choose(predicted_vectors)
+np.savetxt("stupid_result.txt", result, fmt='%1.0i')

@@ -247,8 +247,6 @@ pre = siamese_model.predict(tuple(test_dataset))
 print(np.shape(pre))
 
 """testing our model"""
-
-
 # anchor_t = layers.Input(name="at", shape=target_shape + (3,))
 # positive_t = layers.Input(name="pt", shape=target_shape + (3,))
 # negative_t = layers.Input(name="nt", shape=target_shape + (3,))
