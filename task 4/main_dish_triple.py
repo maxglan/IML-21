@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun  1 09:25:17 2021
+Created on Wed Jun  2 14:11:16 2021
 
 @author: roman
 
-Word classification ansatz
+Main dish triple
 """
 
 import numpy as np
@@ -35,10 +35,13 @@ do_print = False
 
 # Training
 batch_size = 600
-epochs = 10
+epochs = 30
+
+# Fraction of data that is used for validation
+train_frac = 0.9
 
 # Optimizer
-adam = tf.keras.optimizers.Adam(learning_rate=0.001, epsilon=0.0001) # learning_rate = 1e-4, epsilon = 1e-7
+adam = tf.keras.optimizers.Adam(learning_rate=0.0001, epsilon=0.0001) # learning_rate = 1e-4, epsilon = 1e-7
 
 sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
 
@@ -176,7 +179,7 @@ def triple_to_dataset(triplets):
     """ Make the dateset ready for binary classification """
     
     number = triplets.shape[0]
-    tupels = []
+    XYZ = []
     y = []
     
     # Split triplets into tupels. Use symmetry between AB and BA. 
@@ -191,45 +194,37 @@ def triple_to_dataset(triplets):
             C = vector_list[i_img_C]
             
             # Similar taste
-            tupels.append([A,B])
-            tupels.append([B,A])
-            y.append([1])
+            XYZ.append([A,B,C])
             y.append([1])
             
             # Different taste
-            tupels.append([A,C])
-            tupels.append([C,A])
-            y.append([0])
+            XYZ.append([A,C,B])
             y.append([0])
         
     # Convert to np.array
-    tupels = np.array(tupels)
+    XYZ = np.array(XYZ)
     y = np.array(y)
            
     # Shuffle input and output the same way
-    shuffle_indices = np.random.permutation(number*4)
-    tupels = tupels[shuffle_indices]
+    shuffle_indices = np.random.permutation(number*2)
+    XYZ = XYZ[shuffle_indices]
     y = y[shuffle_indices]
     
-    # Convert path to datasets
-    #X_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,0])
-    #Y_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,1])
-    #y_dataset = tf.data.Dataset.from_tensor_slices(y)
-    
-    X_dataset = tf.constant(tupels[:,0])
-    Y_dataset = tf.constant(tupels[:,1])
+    X_dataset = tf.constant(XYZ[:,0])
+    Y_dataset = tf.constant(XYZ[:,1])
+    Z_dataset = tf.constant(XYZ[:,2])
     y_dataset = tf.constant(y)
 
     # Combine datasets
     #dataset = tf.data.Dataset.zip((X_dataset, Y_dataset, y_dataset))
     
-    return X_dataset, Y_dataset, y_dataset #dataset
+    return X_dataset, Y_dataset, Z_dataset, y_dataset #dataset
 
 def triple_to_dataset_test(triplets):
     """ Make the dateset ready for binary classification """
     
     number = triplets.shape[0]
-    tupels = []
+    XYZ = []
     
     # Split triplets into tupels. Use symmetry between AB and BA. 
     for n in range(number):
@@ -243,22 +238,35 @@ def triple_to_dataset_test(triplets):
             C = vector_list[i_img_C]
             
             # Similar taste
-            tupels.append([A,B])
-            tupels.append([A,C])
+            XYZ.append([A,B,C])
         
     # Convert to np.array
-    tupels = np.array(tupels)
+    XYZ = np.array(XYZ)
     
-    X_dataset = tf.constant(tupels[:,0])
-    Y_dataset = tf.constant(tupels[:,1])
+    X_dataset = tf.constant(XYZ[:,0])
+    Y_dataset = tf.constant(XYZ[:,1])
+    Z_dataset = tf.constant(XYZ[:,2])
 
-    return X_dataset, Y_dataset #dataset
+    return X_dataset, Y_dataset, Z_dataset 
 
 # Create datasets
 #train_dataset = triple_to_dataset(train_triplets)
 
-X, Y, y = triple_to_dataset(train_triplets)
-X_test, Y_test = triple_to_dataset_test(test_triplets)
+
+X, Y, Z, y = triple_to_dataset(train_triplets)
+
+number = len(X)
+X_train = X[:int(train_frac * number)]
+X_val = X[int(train_frac * number):]
+Y_train = Y[:int(train_frac * number)]
+Y_val = Y[int(train_frac * number):]
+Z_train = Z[:int(train_frac * number)]
+Z_val = Z[int(train_frac * number):]
+y_train = y[:int(train_frac * number)]
+y_val = y[int(train_frac * number):]
+
+X_test, Y_test, Z_test = triple_to_dataset_test(test_triplets)
+
 
 
 
@@ -266,6 +274,7 @@ X_test, Y_test = triple_to_dataset_test(test_triplets)
 
 X_input = layers.Input(name="X", shape=[len(feature_list)])
 Y_input = layers.Input(name="Y", shape=[len(feature_list)])
+Z_input = layers.Input(name="Z", shape=[len(feature_list)])
 
 class ConcatenationLayer(layers.Layer):
     """
@@ -277,8 +286,8 @@ class ConcatenationLayer(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def call(self, X, Y):
-        return layers.Concatenate()([X, Y])
+    def call(self, X, Y, Z):
+        return layers.Concatenate()([X, Y, Z])
 
 leaky_relu = layers.LeakyReLU(alpha=0.1)
 dim_red = layers.Dense(400, activation=leaky_relu, input_shape=(len(feature_list),))
@@ -286,10 +295,11 @@ dim_red = layers.Dense(400, activation=leaky_relu, input_shape=(len(feature_list
 concat = ConcatenationLayer()(
     dim_red(X_input),
     dim_red(Y_input),
+    dim_red(Z_input),
 )
 
 model = Model(
-    inputs=[X_input, Y_input], outputs=concat
+    inputs=[X_input, Y_input, Z_input], outputs=concat
 )
 
 flatten = layers.Flatten()(model.outputs[0]) 
@@ -297,56 +307,75 @@ dense1 = layers.Dense(50, activation=leaky_relu)(flatten)
 dense1 = layers.BatchNormalization()(dense1)
 dense2 = layers.Dense(10, activation=leaky_relu)(dense1)
 dense2 = layers.BatchNormalization()(dense2)
-classifer_layer = layers.Dense(1, activation="sigmoid")(dense2)
+classifier_layer = layers.Dense(1, activation="sigmoid")(dense2)
 
-model = Model(inputs=[X_input, Y_input], outputs=classifer_layer)
+model = Model(inputs=[X_input, Y_input, Z_input], outputs=classifier_layer)
 model.summary()
 
                                                                
 """ Train binary classifier """
 
-
 model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
 
-model.fit(x=[X, Y], 
-          y=y, 
+model.fit(x=[X_train, Y_train, Z_train], 
+          y=y_train, 
+          validation_data=([X_val, Y_val, Z_val], y_val),
           batch_size=batch_size, 
           epochs=epochs)
 
 """ Prediction """
 
-pred = model.predict(x=[X_test, Y_test])
+pred = model.predict(x=[X_test, Y_test, Z_test])
 print(pred)
 
-result = np.zeros(int(len(pred)/2))
 
-for i in range(int(len(pred)/2)): 
-    y_AB = pred[2*i][0]
-    y_AC = pred[2*i+1][0]
+def decide_it(array): 
+    zeros = 0
+    ones = 0
     
-    if y_AB > y_AC: 
-        result[i] = 1
-        
+    result = np.zeros(len(array))
+    
+    for i, y in enumerate(array):
+        if y > 0.5:
+            result[i] = 1   
+            ones += 1
+        else: 
+            zeros += 1
+            
+    print("Zeros: " + str(zeros)) 
+    print("Ones: " + str(ones)) 
+    
+    return result
 
+result = decide_it(pred)
+    
 
 """ Prediction to CSV """
 
-np.savetxt("result_dish.txt", result, fmt='%1.0i')
+np.savetxt("result_dish_triple.txt", result, fmt='%1.0i')
 
+
+""" Validation """
+
+pred_val = model.predict(x=[X_val, Y_val, Z_val])
+result_val = decide_it(pred_val)
+
+good = 0
+bad = 0
+
+for i in range(len(result_val)): 
+    if result_val[i] == y_val[i]: 
+        good += 1
+    else: 
+        bad += 1
+        
+        
+print("Good: " + str(good)) 
+print("Bad: " + str(bad)) 
+print("Good / (Good + Bad): " + str((good - 0.5 * good - 0.5 * bad)/(good + bad))) 
+    
 
 """ Log """ 
 
-# 63 % accuracy with batch_size 32, 200 node dim_red (leaky_relu), 100 node dense1 (leaky_relu), 100 node dense2 (leaky_relu), 1 node classifier (sigmoid)
 
-# 64.5 % accuracy with batch_size 100, 200 node dim_red (leaky_relu), 80 node dense1 (leaky_relu), 15 node dense2 (leaky_relu), 1 node classifier (sigmoid)  
-    
 
-# 64.8 % accuracy with batch_size 500, 400 node dim_red (leaky_relu), 50 node dense1 (leaky_relu), 10 node dense2 (leaky_relu), 1 node classifier (sigmoid)  
-
-# For the following we used the optimizer adam = tf.keras.optimizers.Adam(learning_rate=0.001, epsilon=0.0001)
-# 73.8 % accuracy with batch_size 2000, 400 node dim_red (leaky_relu), 50 node dense1 (leaky_relu), 10 node dense2 (leaky_relu), 1 node classifier (sigmoid) 
-# 72.8 % accuracy with batch_size 4000
-# 76.0 % accuracy with batch_size 1000
-# 76.8.0 % accuracy with batch_size 600
-
-    
