@@ -225,22 +225,44 @@ def triple_to_dataset(triplets):
     
     return X_dataset, Y_dataset, y_dataset #dataset
 
+def triple_to_dataset_training(triplets):
+    """ Make the dateset ready for binary classification """
+    
+    number = triplets.shape[0]
+    tupels = []
+    
+    # Split triplets into tupels. Use symmetry between AB and BA. 
+    for n in range(number):
+            i_img_A = int(triplets[n,0])
+            i_img_B = int(triplets[n,1])
+            i_img_C = int(triplets[n,2])
+            
+            # Conversion to vector
+            A = vector_list[i_img_A]
+            B = vector_list[i_img_B]
+            C = vector_list[i_img_C]
+            
+            # Similar taste
+            tupels.append([A,B])
+            tupels.append([A,C])
+        
+    # Convert to np.array
+    tupels = np.array(tupels)
+    
+    X_dataset = tf.constant(tupels[:,0])
+    Y_dataset = tf.constant(tupels[:,1])
+
+    return X_dataset, Y_dataset #dataset
+
 # Create datasets
 #train_dataset = triple_to_dataset(train_triplets)
 
 X, Y, y = triple_to_dataset(train_triplets)
+X_test, Y_test = triple_to_dataset_training(test_triplets)
 
 
-# Batch datasets
-#train_dataset = train_dataset.batch(batch_size, drop_remainder=False)
-#train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
-
-if do_print: 
-    print(20 * "*" + " training_dataset " + 20 * "*")
-    print(train_dataset)
 
 """ Model """
-
 
 X_input = layers.Input(name="X", shape=[len(feature_list)])
 Y_input = layers.Input(name="Y", shape=[len(feature_list)])
@@ -291,12 +313,25 @@ model.fit(x=[X, Y],
           batch_size=batch_size, 
           epochs=epochs)
 
-
 """ Prediction """
 
+pred = model.predict(x=[X_test, Y_test])
+print(pred)
+
+result = np.zeros(int(len(pred)/2))
+
+for i in range(int(len(pred)/2)): 
+    y_AB = pred[2*i][0]
+    y_AC = pred[2*i+1][0]
+    
+    if y_AB > y_AC: 
+        result[i] = 1
+        
 
 
 """ Prediction to CSV """
+
+np.savetxt("result_dish.txt", result, fmt='%1.0i')
 
 
 """ Log """ 
