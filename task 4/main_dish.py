@@ -7,11 +7,14 @@ Created on Tue Jun  1 09:25:17 2021
 Word classification ansatz
 """
 
+import numpy as np
+import tensorflow as tf
 
+from tensorflow.keras import layers, models
+from tensorflow.keras import Model
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.resnet50 import preprocess_input, decode_predictions
-import numpy as np
 
 import pathlib
 import pickle
@@ -21,8 +24,26 @@ model = ResNet50(weights='imagenet')
 
 """ Parameters """
 
-do_extract = True
-get_only = 10000
+# Dataset
+number_of_images = 10000
+get_only = 60000
+
+# Preprocessing
+do_load = True
+do_extract = False
+do_print = False
+
+# Training
+batch_size = 32
+epochs = 10
+
+# Optimizer
+adam = tf.keras.optimizers.Adam(learning_rate=0.02, epsilon=0.1) # learning_rate = 1e-4, epsilon = 1e-7
+
+sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
+
+opt = adam
+
 
 """ Load data """
 
@@ -36,19 +57,23 @@ test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')[:get_only]
 
 """ Extract features """
 
-def get_features(do_extract: bool=do_extract, number_of_images=10000): 
+
+
+def get_features(do_load: bool=True, do_extract: bool=False, number_of_images: int=10): 
     
     prediction_list = []
     feature_set = set()
     
-    try: 
-        with open('feature_list.pkl', 'rb') as f:
-            feature_list = pickle.load(f)
-        with open('prediction_list.pkl', 'rb') as f:
-            prediction_list = pickle.load(f)
-        
-    except:
-        print("There are no old predictions that can be used.")
+    if do_load: 
+        try: 
+            with open('feature_list.pkl', 'rb') as f:
+                feature_list = pickle.load(f)
+            with open('prediction_list.pkl', 'rb') as f:
+                prediction_list = pickle.load(f)
+                print("Loaded " + str(len(prediction_list)) + " images.")
+            
+        except:
+            print("There are no old predictions that can be used.")
         
     if do_extract: 
         
@@ -66,7 +91,7 @@ def get_features(do_extract: bool=do_extract, number_of_images=10000):
             
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            print('Predicted:', decode_predictions(preds, top=3)[0])
+            print('Predicted:', decode_predictions(preds, top=10)[0])
             prediction_list.append(decode_predictions(preds, top=3)[0])
             
             for prediction_item in decode_predictions(preds, top=3)[0]:
@@ -90,11 +115,16 @@ def get_features(do_extract: bool=do_extract, number_of_images=10000):
             
     return feature_list, prediction_list
 
-for i_img in [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]:
-    feature_list, prediction_list = get_features(do_extract, number_of_images=i_img)
+feature_list, prediction_list = get_features(do_load, do_extract, number_of_images)
     
-print(feature_list)
-print(prediction_list)
+if do_print: 
+    print(20 * "*" + " feature_list " + 20 * "*")
+    print(feature_list)
+    
+    print(20 * "*" + " prediction_list " + 20 * "*") 
+    print(prediction_list)
+
+
 
 
 """ Feature <-> index mapping """
@@ -106,11 +136,15 @@ feature_space_dimension = len(feature_list)
 feature_to_index = {}
 for i_f, feature in enumerate(feature_list): 
     feature_to_index[feature] = i_f
-    
-print(feature_to_index)
 
 index_to_feature = {value:key for key, value in feature_to_index.items()}
-print(index_to_feature)
+
+if do_print: 
+    print(20 * "*" + " feature_to_index " + 20 * "*")
+    print(feature_to_index)
+    print(20 * "*" + " index_to_feature " + 20 * "*")
+    print(index_to_feature)
+
 
 
 """ Image (i_img) <-> prediction <-> vector mapping via indexing"""
@@ -177,26 +211,83 @@ def triple_to_dataset(triplets):
     tupels = tupels[shuffle_indices]
     y = y[shuffle_indices]
     
-    
     # Convert path to datasets
-    X_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,0])
-    Y_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,1])
+    #X_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,0])
+    #Y_dataset = tf.data.Dataset.from_tensor_slices(tupels[:,1])
+    #y_dataset = tf.data.Dataset.from_tensor_slices(y)
+    
+    X_dataset = tf.constant(tupels[:,0])
+    Y_dataset = tf.constant(tupels[:,1])
+    y_dataset = tf.constant(y)
 
     # Combine datasets
-    dataset = tf.data.Dataset.zip((X_dataset, Y_dataset, y))
+    #dataset = tf.data.Dataset.zip((X_dataset, Y_dataset, y_dataset))
     
-    return dataset
+    return X_dataset, Y_dataset, y_dataset #dataset
 
-training_dataset = triple_to_dataset(train_triplets)
+# Create datasets
+#train_dataset = triple_to_dataset(train_triplets)
+
+X, Y, y = triple_to_dataset(train_triplets)
 
 
-print(training_dataset)
+# Batch datasets
+#train_dataset = train_dataset.batch(batch_size, drop_remainder=False)
+#train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
+
+if do_print: 
+    print(20 * "*" + " training_dataset " + 20 * "*")
+    print(train_dataset)
 
 """ Model """
 
 
+X_input = layers.Input(name="X", shape=[len(feature_list)])
+Y_input = layers.Input(name="Y", shape=[len(feature_list)])
 
-""" Training """
+class ConcatenationLayer(layers.Layer):
+    """
+    This layer is responsible for computing the distance between the anchor
+    embedding and the positive embedding, and the anchor embedding and the
+    negative embedding.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def call(self, X, Y):
+        return layers.Concatenate()([X, Y])
+
+leaky_relu = layers.LeakyReLU(alpha=0.1)
+dim_red = layers.Dense(200, activation=leaky_relu, input_shape=(len(feature_list),))
+
+concat = ConcatenationLayer()(
+    dim_red(X_input),
+    dim_red(Y_input),
+)
+
+model = Model(
+    inputs=[X_input, Y_input], outputs=concat
+)
+
+flatten = layers.Flatten()(model.outputs[0]) 
+dense = layers.Dense(15, activation=leaky_relu)(flatten)
+dense = layers.BatchNormalization()(dense)
+classifer_layer = layers.Dense(1, activation="sigmoid")(dense)
+
+model = Model(inputs=[X_input, Y_input], outputs=classifer_layer)
+model.summary()
+
+                                                               
+""" Train binary classifier """
+
+
+model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
+
+model.fit(x=[X, Y], 
+          y=y, 
+          batch_size=batch_size, 
+          epochs=epochs)
 
 
 """ Prediction """
