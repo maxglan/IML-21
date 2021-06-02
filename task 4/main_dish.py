@@ -308,10 +308,10 @@ model.fit(x=[X, Y],
 
 # 64.8 % accuracy with batch_size 500, 400 node dim_red (leaky_relu), 50 node dense1 (leaky_relu), 10 node dense2 (leaky_relu), 1 node classifier (sigmoid)  
 
+# For the following we used the optimizer adam = tf.keras.optimizers.Adam(learning_rate=0.001, epsilon=0.0001)
 # 73.8 % accuracy with batch_size 2000, 400 node dim_red (leaky_relu), 50 node dense1 (leaky_relu), 10 node dense2 (leaky_relu), 1 node classifier (sigmoid) 
 # 72.8 % accuracy with batch_size 4000
 # 76.0 % accuracy with batch_size 1000
-
-
+# 76.8.0 % accuracy with batch_size 600
 
     
