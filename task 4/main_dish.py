@@ -34,11 +34,11 @@ do_extract = False
 do_print = False
 
 # Training
-batch_size = 32
+batch_size = 600
 epochs = 10
 
 # Optimizer
-adam = tf.keras.optimizers.Adam(learning_rate=0.02, epsilon=0.1) # learning_rate = 1e-4, epsilon = 1e-7
+adam = tf.keras.optimizers.Adam(learning_rate=0.001, epsilon=0.0001) # learning_rate = 1e-4, epsilon = 1e-7
 
 sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
 
@@ -259,7 +259,7 @@ class ConcatenationLayer(layers.Layer):
         return layers.Concatenate()([X, Y])
 
 leaky_relu = layers.LeakyReLU(alpha=0.1)
-dim_red = layers.Dense(200, activation=leaky_relu, input_shape=(len(feature_list),))
+dim_red = layers.Dense(400, activation=leaky_relu, input_shape=(len(feature_list),))
 
 concat = ConcatenationLayer()(
     dim_red(X_input),
@@ -271,9 +271,11 @@ model = Model(
 )
 
 flatten = layers.Flatten()(model.outputs[0]) 
-dense = layers.Dense(15, activation=leaky_relu)(flatten)
-dense = layers.BatchNormalization()(dense)
-classifer_layer = layers.Dense(1, activation="sigmoid")(dense)
+dense1 = layers.Dense(50, activation=leaky_relu)(flatten)
+dense1 = layers.BatchNormalization()(dense1)
+dense2 = layers.Dense(10, activation=leaky_relu)(dense1)
+dense2 = layers.BatchNormalization()(dense2)
+classifer_layer = layers.Dense(1, activation="sigmoid")(dense2)
 
 model = Model(inputs=[X_input, Y_input], outputs=classifer_layer)
 model.summary()
@@ -296,14 +298,19 @@ model.fit(x=[X, Y],
 
 """ Prediction to CSV """
 
+
+""" Log """ 
+
+# 63 % accuracy with batch_size 32, 200 node dim_red (leaky_relu), 100 node dense1 (leaky_relu), 100 node dense2 (leaky_relu), 1 node classifier (sigmoid)
+
+# 64.5 % accuracy with batch_size 100, 200 node dim_red (leaky_relu), 80 node dense1 (leaky_relu), 15 node dense2 (leaky_relu), 1 node classifier (sigmoid)  
     
-    
 
+# 64.8 % accuracy with batch_size 500, 400 node dim_red (leaky_relu), 50 node dense1 (leaky_relu), 10 node dense2 (leaky_relu), 1 node classifier (sigmoid)  
 
-
-
-
-
+# 73.8 % accuracy with batch_size 2000, 400 node dim_red (leaky_relu), 50 node dense1 (leaky_relu), 10 node dense2 (leaky_relu), 1 node classifier (sigmoid) 
+# 72.8 % accuracy with batch_size 4000
+# 76.0 % accuracy with batch_size 1000
 
 
 
