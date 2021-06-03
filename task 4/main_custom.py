@@ -27,7 +27,7 @@ import pathlib
 target_shape = (224,224)
 
 # max_image_count
-max_train_count = 4000
+max_train_count = 10000
 max_test_count = 400
 
 batch_size = 50
@@ -36,11 +36,11 @@ epochs = 20
 # Optimizer 
 
 # learning_rate = 1e-4, epsilon = 1e-7
-adam = tf.keras.optimizers.Adam(learning_rate=0.02, epsilon=0.1) 
+adam = tf.keras.optimizers.Adam(learning_rate=0.001, epsilon=0.1) 
 
 sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
 
-opt = adam
+opt = sgd
 
 """ Load data """
 
@@ -229,13 +229,25 @@ base_cnn = EfficientNetB0(
     weights="imagenet", input_shape=target_shape + (3,), include_top=False
 )
 
+trainable = False
 for layer in base_cnn.layers:
-    layer.trainable = False
+    if layer.name == "conv5_block1_out":
+        trainable = True
+    layer.trainable = trainable
+    
+
 
 flatten = layers.Flatten()(base_cnn.output)
-dense1 = layers.Dense(69, activation="relu")(flatten)
+dense1 = layers.Dense(512, activation="relu")(flatten)
 dense1 = layers.BatchNormalization()(dense1)
-output = layers.Dense(13)(dense1)
+dense2 = layers.Dense(256, activation="relu")(dense1)
+dense2 = layers.BatchNormalization()(dense2)
+output = layers.Dense(256)(dense2)
+
+# flatten = layers.Flatten()(base_cnn.output)
+# dense1 = layers.Dense(69, activation="relu")(flatten)
+# dense1 = layers.BatchNormalization()(dense1)
+# output = layers.Dense(13)(dense1)
 
 embedding = Model(base_cnn.input, output, name="Embedding")
 

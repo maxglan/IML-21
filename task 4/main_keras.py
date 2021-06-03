@@ -78,14 +78,14 @@ dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_datase
 dataset = dataset.shuffle(buffer_size=1024)
 dataset = dataset.map(preprocess_triplets)
 
-train_dataset = dataset.take(round(image_count * 0.1))
-val_dataset = dataset.skip(round(image_count * 0.1))
+train_dataset = dataset.take(round(image_count * 0.8))
+val_dataset = dataset.skip(round(image_count * 0.8))
 
-train_dataset = train_dataset.batch(100)
-train_dataset = train_dataset.prefetch(8)
+train_dataset = train_dataset.batch(30)
+train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-val_dataset = val_dataset.batch(100)
-val_dataset = val_dataset.prefetch(8)
+val_dataset = val_dataset.batch(30)
+val_dataset = val_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
 #repeat for test data
 anchor_test = list(
@@ -117,22 +117,27 @@ base_cnn = EfficientNetB0(
     weights="imagenet", input_shape=target_shape + (3,), include_top=False
 )
 
+trainable = False
 for layer in base_cnn.layers:
-    layer.trainable = False
+    if layer.name == "conv5_block1_out":
+        trainable = True
+    layer.trainable = trainable 
+
+# flatten = layers.Flatten()(base_cnn.output)
+# dense1 = layers.Dense(69, activation="relu")(flatten)
+# dense1 = layers.BatchNormalization()(dense1)
+# output = layers.Dense(13)(dense1)
 
 flatten = layers.Flatten()(base_cnn.output)
-dense1 = layers.Dense(69, activation="relu")(flatten)
+dense1 = layers.Dense(512, activation="relu")(flatten)
 dense1 = layers.BatchNormalization()(dense1)
-output = layers.Dense(13)(dense1)
+dense2 = layers.Dense(256, activation="relu")(dense1)
+dense2 = layers.BatchNormalization()(dense2)
+output = layers.Dense(256)(dense2)
 
 embedding = Model(base_cnn.input, output, name="Embedding")
 
-# trainable = False
-# for layer in base_cnn.layers:
-#     if layer.name == "conv5_block1_out":
-#         trainable = True
-#     layer.trainable = trainable 
-    
+
 class DistanceLayer(layers.Layer):
     """
     This layer is responsible for computing the distance between the anchor
@@ -162,7 +167,7 @@ distances = DistanceLayer()(
 siamese_network = Model(
     inputs=[anchor_input, positive_input, negative_input], outputs=distances
 )
-
+siamese_network.summary()
 
 class SiameseModel(Model):
     """The Siamese Network model with a custom training and testing loops.
@@ -241,12 +246,13 @@ class SiameseModel(Model):
 
 
 siamese_model = SiameseModel(siamese_network)
-siamese_model.compile(optimizer=optimizers.Adam(0.0001))
+siamese_model.compile(optimizer=optimizers.Adam(0.015))
+
 
 # print("data", train_dataset)
 # print("model", siamese_model.input)
 
-siamese_model.fit(train_dataset, epochs=1, validation_data=val_dataset)
+siamese_model.fit(train_dataset, epochs=10, validation_data=val_dataset)
 
 """testing our model, alternative"""
 
