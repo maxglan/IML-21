@@ -32,10 +32,13 @@ get_only = 60000
 do_load = True
 do_extract = False
 do_print = False
+top = 50 # Only use the first "top" prediction of ResNet50
+min_number = 2 # Minimum number of times that a feature should appear in total
 
 # Training
-batch_size = 600
-epochs = 30
+batch_size = 400
+epochs = 10
+threshold = 4000
 
 # Fraction of data that is used for validation
 train_frac = 0.9
@@ -57,10 +60,13 @@ images_path = pathlib.Path().absolute() / "food"
 train_triplets = np.genfromtxt("train_triplets.txt", dtype='str')[:get_only]
 test_triplets = np.genfromtxt("test_triplets.txt", dtype='str')[:get_only]
 
+train_indices = [i for i in range(len(train_triplets)) if (int(train_triplets[i][0]) < threshold and int(train_triplets[i][1]) < threshold and int(train_triplets[i][2]) < threshold)]
+val_indices = [i for i in range(len(train_triplets)) if (int(train_triplets[i][0]) >= threshold and int(train_triplets[i][1]) >= threshold and int(train_triplets[i][2]) >= threshold)]
+
+print("Number of train triples: ", len(train_indices))
+print("Number of val triples: ", len(val_indices))
 
 """ Extract features """
-
-
 
 def get_features(do_load: bool=True, do_extract: bool=False, number_of_images: int=10): 
     
@@ -69,9 +75,9 @@ def get_features(do_load: bool=True, do_extract: bool=False, number_of_images: i
     
     if do_load: 
         try: 
-            with open('feature_list.pkl', 'rb') as f:
+            with open('feature_list_50.pkl', 'rb') as f:
                 feature_list = pickle.load(f)
-            with open('prediction_list.pkl', 'rb') as f:
+            with open('prediction_list_50.pkl', 'rb') as f:
                 prediction_list = pickle.load(f)
                 print("Loaded " + str(len(prediction_list)) + " images.")
             
@@ -94,26 +100,26 @@ def get_features(do_load: bool=True, do_extract: bool=False, number_of_images: i
             
             # decode the results into a list of tuples (class, description, probability)
             # (one such list for each sample in the batch)
-            print('Predicted:', decode_predictions(preds, top=10)[0])
-            prediction_list.append(decode_predictions(preds, top=3)[0])
+            #print('Predicted:', decode_predictions(preds, top=50)[0])
+            prediction_list.append(decode_predictions(preds, top=top)[0])
             
-            for prediction_item in decode_predictions(preds, top=3)[0]:
-                nr, name, probability = prediction_item 
+            for prediction_item in decode_predictions(preds, top=top)[0]:
+                nr, name, probability = prediction_item                 
                 feature_set.add(name)
                 
         feature_list = list(feature_set)
-        print(feature_list) 
+        #print(feature_list) 
     
-        with open('feature_list.pkl', 'wb') as f:
+        with open('feature_list_50.pkl', 'wb') as f:
             pickle.dump(feature_list, f)
-        with open('prediction_list.pkl', 'wb') as f:
+        with open('prediction_list_50.pkl', 'wb') as f:
             pickle.dump(prediction_list, f)
         
             
     else:
-        with open('feature_list.pkl', 'rb') as f:
+        with open('feature_list_50.pkl', 'rb') as f:
             feature_list = pickle.load(f)
-        with open('prediction_list.pkl', 'rb') as f:
+        with open('prediction_list_50.pkl', 'rb') as f:
             prediction_list = pickle.load(f)
             
     return feature_list, prediction_list
@@ -122,13 +128,61 @@ feature_list, prediction_list = get_features(do_load, do_extract, number_of_imag
     
 if do_print: 
     print(20 * "*" + " feature_list " + 20 * "*")
-    print(feature_list)
+    #print(feature_list)
     
     print(20 * "*" + " prediction_list " + 20 * "*") 
-    print(prediction_list)
+    #print(prediction_list)
 
 
+""" Reduced feature list """
+# Features that only appear in the train [0,4999] or in the test [5000,9999] dataset
+# are bad for the prediction. Therefore we kick them out. 
 
+def reduced_feature_list(prediction_list):
+    
+    train_features = set()
+    test_features = set() 
+    
+    for prediction in prediction_list[:4999]:
+        for prediction_item in prediction: 
+            nr, name, probability = prediction_item 
+            train_features.add(name)
+    
+    for prediction in prediction_list[4999:]:
+        for prediction_item in prediction: 
+            nr, name, probability = prediction_item 
+            test_features.add(name)
+        
+    #print("train_features: ", train_features)
+    #print("test_features: ", test_features)
+    
+    feature_list = train_features.intersection(test_features)
+    feature_list = list(feature_list)
+
+    print("The reduced feature list has length ", len(feature_list))
+    
+    # Delete features that do not come often
+    feature_number_dict = {}
+    for prediction in prediction_list:
+        for prediction_item in prediction: 
+            nr, name, probability = prediction_item 
+            if name in feature_list: 
+                if name in feature_number_dict: 
+                    feature_number_dict[name] += probability
+                else: 
+                    feature_number_dict[name] = probability
+    
+    final_feature_list = []
+    
+    for name in feature_list: 
+        if feature_number_dict[name] >= min_number: 
+            final_feature_list.append(name)
+    
+    print("The final feature list has length ", len(final_feature_list))
+
+    return final_feature_list
+
+feature_list = reduced_feature_list(prediction_list)
 
 """ Feature <-> index mapping """
 
@@ -149,7 +203,6 @@ if do_print:
     print(index_to_feature)
 
 
-
 """ Image (i_img) <-> prediction <-> vector mapping via indexing"""
 
 def prediction_to_vector(prediction): 
@@ -158,8 +211,10 @@ def prediction_to_vector(prediction):
     for prediction_item in prediction:
         
         nr, name, probability = prediction_item
-        index = feature_to_index[name]
-        vector[index] = probability
+        
+        if name in feature_to_index.keys(): 
+            index = feature_to_index[name]
+            vector[index] = probability
         
     return vector
 
@@ -253,24 +308,18 @@ def triple_to_dataset_test(triplets):
 #train_dataset = triple_to_dataset(train_triplets)
 
 
-X, Y, Z, y = triple_to_dataset(train_triplets)
+X_train, Y_train, Z_train, y_train = triple_to_dataset(train_triplets[train_indices])
 
-number = len(X)
-X_train = X[:int(train_frac * number)]
-X_val = X[int(train_frac * number):]
-Y_train = Y[:int(train_frac * number)]
-Y_val = Y[int(train_frac * number):]
-Z_train = Z[:int(train_frac * number)]
-Z_val = Z[int(train_frac * number):]
-y_train = y[:int(train_frac * number)]
-y_val = y[int(train_frac * number):]
+if len(val_indices) > 0: 
+    X_val, Y_val, Z_val, y_val = triple_to_dataset(train_triplets[val_indices])
+else: 
+    X_val, Y_val, Z_val, y_val = triple_to_dataset(train_triplets[[0]])
+    
 
 X_test, Y_test, Z_test = triple_to_dataset_test(test_triplets)
 
 
-
-
-""" Model """
+""" Model direct"""
 
 X_input = layers.Input(name="X", shape=[len(feature_list)])
 Y_input = layers.Input(name="Y", shape=[len(feature_list)])
@@ -312,7 +361,90 @@ classifier_layer = layers.Dense(1, activation="sigmoid")(dense2)
 model = Model(inputs=[X_input, Y_input, Z_input], outputs=classifier_layer)
 model.summary()
 
-                                                               
+
+""" Model parallel"""
+
+# X_input = layers.Input(name="X", shape=[len(feature_list)])
+# Y_input = layers.Input(name="Y", shape=[len(feature_list)])
+# Z_input = layers.Input(name="Z", shape=[len(feature_list)])
+
+# class ConcatenationLayer(layers.Layer):
+#     """
+#     This layer is responsible for computing the distance between the anchor
+#     embedding and the positive embedding, and the anchor embedding and the
+#     negative embedding.
+#     """
+
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
+
+#     def call(self, X, Y):
+#         return layers.Concatenate()([X, Y])
+
+# leaky_relu = layers.LeakyReLU(alpha=0.1)
+# # dim_red = layers.Dense(30, activation=leaky_relu, input_shape=(len(feature_list),))
+
+# # # XY path
+# # concat_XY = ConcatenationLayer()(
+# #     dim_red(X_input),
+# #     dim_red(Y_input),
+# # )
+
+# concat_XY = ConcatenationLayer()(
+#     X_input,
+#     Y_input,
+# )
+
+# model_XY = Model(
+#     inputs=[X_input, Y_input], outputs=concat_XY
+# )
+# flatten_XY = layers.Flatten()(model_XY.outputs[0]) 
+
+# dense1 = layers.Dense(30, activation="linear")
+# dense1_XY = dense1(flatten_XY)
+
+# dense1_XY = layers.BatchNormalization()(dense1_XY)
+# model_XY = Model(inputs=[X_input, Y_input, Z_input], outputs=dense1_XY)
+
+# # # XZ path
+# # concat_XZ = ConcatenationLayer()(
+# #     dim_red(X_input),
+# #     dim_red(Z_input),
+# # )
+
+# concat_XZ = ConcatenationLayer()(
+#     X_input,
+#     Z_input,
+# )
+
+# model_XZ = Model(
+#     inputs=[X_input, Y_input, Z_input], outputs=concat_XZ
+# )
+# flatten_XZ = layers.Flatten()(model_XZ.outputs[0]) 
+# dense1_XZ = dense1(flatten_XZ) 
+# model_XZ = Model(inputs=[X_input, Y_input, Z_input], outputs=dense1_XZ)
+
+# concat_XY_XZ = ConcatenationLayer()(
+#     model_XY.output,
+#     model_XZ.output,
+# )                                                    
+
+
+# model = Model(
+#     inputs=[X_input, Y_input, Z_input], outputs=concat_XY_XZ
+# )
+
+
+# flatten = layers.Flatten()(model.outputs[0]) 
+# dense = layers.Dense(2, activation="linear")(flatten)
+# dense = layers.BatchNormalization()(dense)
+# classifer_layer = layers.Dense(1, activation="sigmoid")(dense)
+
+# model = Model(inputs=[X_input, Y_input, Z_input], outputs=classifer_layer)
+# model.summary()
+
+
+
 """ Train binary classifier """
 
 model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
@@ -376,6 +508,11 @@ print("Good / (Good + Bad): " + str((good - 0.5 * good - 0.5 * bad)/(good + bad)
     
 
 """ Log """ 
+
+
+# dimred 400, dense1 50, dense2 10 all reaky_relu, classifier 1 sigmoid
+# val = 64 % for batch_size 200, epoch 4, learning rate 1e-4
+# val = 63.5 % for batch_size 400, epoch 6, learning rate 1e-4, min_number 2
 
 
 

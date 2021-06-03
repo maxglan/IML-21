@@ -231,8 +231,6 @@ class SiameseModel(Model):
 
 # cb_list = [cb, ...]¨
 
-
-
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
 
