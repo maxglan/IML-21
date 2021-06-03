@@ -36,15 +36,15 @@ top = 50 # Only use the first "top" prediction of ResNet50
 min_number = 2 # Minimum number of times that a feature should appear in total
 
 # Training
-batch_size = 400
-epochs = 10
+batch_size = 65
+epochs = 30
 threshold = 4000
 
 # Fraction of data that is used for validation
-train_frac = 0.9
+train_frac = 0.8
 
 # Optimizer
-adam = tf.keras.optimizers.Adam(learning_rate=0.0001, epsilon=0.0001) # learning_rate = 1e-4, epsilon = 1e-7
+adam = tf.keras.optimizers.Adam(learning_rate=0.00005, epsilon=0.0001) # learning_rate = 1e-4, epsilon = 1e-7
 
 sgd = tf.keras.optimizers.SGD(learning_rate=0.05, momentum=0.2, nesterov=False, name='SGD')
 
@@ -351,10 +351,15 @@ model = Model(
     inputs=[X_input, Y_input, Z_input], outputs=concat
 )
 
-flatten = layers.Flatten()(model.outputs[0]) 
-dense1 = layers.Dense(50, activation=leaky_relu)(flatten)
+flatten = layers.Flatten()(model.outputs[0])
+drop = layers.Dropout(0.4, seed=3)(flatten)
+dense0 = layers.Dense(300, activation=leaky_relu)(drop)
+dense0 = layers.BatchNormalization()(dense0)
+drop = layers.Dropout(0.4, seed=5)(dense0)
+dense1 = layers.Dense(50, activation=leaky_relu)(drop)
 dense1 = layers.BatchNormalization()(dense1)
-dense2 = layers.Dense(10, activation=leaky_relu)(dense1)
+drop = layers.Dropout(0.5, seed=3)(dense1)
+dense2 = layers.Dense(10, activation=leaky_relu)(drop)
 dense2 = layers.BatchNormalization()(dense2)
 classifier_layer = layers.Dense(1, activation="sigmoid")(dense2)
 
